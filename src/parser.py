@@ -122,36 +122,35 @@ class DefineNode(ASTNode):
         self.value.pretty_print(indent + 1)
 
 
-class InstrumentConfigNode(ASTNode):
+class InstrumentNode(ASTNode):
+    instrument_name: str
     config: Dict[str, List[ASTNode]]
 
-    def __init__(self, config: Dict[str, List[ASTNode]], line: int, column: int):
+    def __init__(self, name: str, config: Dict[str, List[ASTNode]], line: int, column: int):
+        self.instrument_name = name
         self.config = config
         super().__init__(line, column)
 
     def pretty_print(self, indent: int = 0) -> None:
         super().pretty_print(indent)
-        print("Config")
+        print(f"Instrument {self.instrument_name}")
 
         for name, values in self.config.items():
             super().pretty_print(indent + 1)
-            print(f"{name}(", end="")
+            print(name)
             for value in values:
-                print(f"{value} ", end="")
-            print(")")
-
+                value.pretty_print(indent + 2)
 
 class UseNode(ASTNode):
-    config: ASTNode
+    config: str
 
-    def __init__(self, config: ASTNode, line: int, column: int):
+    def __init__(self, config: str, line: int, column: int):
         self.config = config
         super().__init__(line, column)
 
     def pretty_print(self, indent: int = 0) -> None:
         super().pretty_print(indent)
-        print("Use")
-        self.config.pretty_print(indent + 1)
+        print(f"Use {self.config}")
 
 
 class RepeatNode(ASTNode):
@@ -168,7 +167,6 @@ class RepeatNode(ASTNode):
         print("Repeat")
         self.times.pretty_print(indent + 1)
         self.root.pretty_print(indent + 1)
-
 
 class Parser:
     tokens: List[lexer.Token]
@@ -280,12 +278,14 @@ class Parser:
                     alias, value, command_token.line, command_token.column
                 )
             case "use":
-                config: ASTNode = self.parse_expression()
+                config: str = self.expect(lexer.TokenType.IDENTIFIER)
                 return UseNode(config, command_token.line, command_token.column)
             case "repeat":
                 times: ASTNode = self.parse_expression()
                 root: ASTNode = self.parse_sequence()
                 return RepeatNode(times, root, command_token.line, command_token.column)
+            case "instrument":
+                return self.parse_instrument()
             case _:
                 raise error.SonataError(
                     error.SonataErrorType.SYNTAX_ERROR,
@@ -322,9 +322,6 @@ class Parser:
                 )
             case lexer.TokenType.LPAREN:
                 return self.parse_expression()
-            case lexer.TokenType.KEYWORD:
-                if current_token.value == "config":
-                    return self.parse_instrument_config()
             case lexer.TokenType.LSQR | lexer.TokenType.LBRACE:
                 self.reverse()
                 return self.parse_sequence()
@@ -359,31 +356,32 @@ class Parser:
 
         return left
 
-    def parse_instrument_config(self) -> ASTNode:
+    def parse_instrument(self) -> ASTNode:
+        name: str = cast(str, self.expect(lexer.TokenType.IDENTIFIER).value)
+
         opening_token = self.peek()
         self.expect(lexer.TokenType.LPAREN)
 
         config: Dict[str, List[ASTNode]] = {}
 
         while self.peek().type != lexer.TokenType.RPAREN:
-            config_entry: str = cast(
-                str, self.expect(lexer.TokenType.INSTRUMENT_CONFIG).value
-            )
+            config_name: str = cast(str, self.expect(lexer.TokenType.IDENTIFIER).value)
             values: List[ASTNode] = []
-            self.expect(lexer.TokenType.LPAREN)
 
-            while self.peek().type != lexer.TokenType.RPAREN:
+            current_token_type: lexer.TokenType = self.peek().type
+
+            while current_token_type != lexer.TokenType.RPAREN and current_token_type != lexer.TokenType.COMMA:
                 values.append(self.parse_expression())
 
                 if self.peek().type == lexer.TokenType.COMMA:
-                    self.expect(lexer.TokenType.COMMA)
-                else:
+                    self.advance()
+                    break
+                    
+                if self.peek().type == lexer.TokenType.RPAREN:
                     break
 
-            config[config_entry] = values
-
-            self.expect(lexer.TokenType.RPAREN)
+            config[config_name] = values
 
         self.expect(lexer.TokenType.RPAREN)
 
-        return InstrumentConfigNode(config, opening_token.line, opening_token.column)
+        return InstrumentNode(name, config, opening_token.line, opening_token.column)
