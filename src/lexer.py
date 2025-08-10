@@ -26,6 +26,9 @@ class TokenType(Enum):
     PERCENT = 15
     EQ = 16
 
+    COLON = 17
+
+
 class Token:
     type: TokenType
     value: TokenValue
@@ -61,10 +64,11 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
         "-": TokenType.MINUS,
         "*": TokenType.STAR,
         "/": TokenType.SLASH,
-        "=": TokenType.EQ
+        "=": TokenType.EQ,
+        ":": TokenType.COLON,
     }
 
-    all_keywords: List[str] = ["tempo", "define", "use", "repeat", "loop", "config"]
+    all_keywords: List[str] = ["tempo", "define", "use", "repeat", "config"]
     instrument_configs_keywords: List[str] = ["adsr", "harmonics"]
 
     def tokenize_number() -> None:
@@ -83,7 +87,12 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
             next_char()
 
         result.append(
-            Token(TokenType.NUMBER, float(value_str) if is_float else int(value_str), line, column)
+            Token(
+                TokenType.NUMBER,
+                float(value_str) if is_float else int(value_str),
+                line,
+                column,
+            )
         )
 
     def tokenize_identifier() -> None:

@@ -2,13 +2,13 @@ import colorama
 
 import lexer
 import parser
+import interpreter
 
 import error
 
 
 def repl() -> int:
     while True:
-
         filename: str = "test.sn"
 
         print("Sonata % ", end="")
@@ -24,6 +24,10 @@ def repl() -> int:
             root: parser.ASTNode = _parser.parse()
 
             root.pretty_print()
+
+            ctx = interpreter.InterpreterContext(filename, 120)
+
+            interpreter.visit_node(root, ctx)
         except error.SonataError as e:
             e.print(line)
 
@@ -39,5 +43,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
     except Exception as e:
-        error.SonataError(
-            error.SonataErrorType.INTERNAL_ERROR, str(e)).print("")
+        error.SonataError(error.SonataErrorType.INTERNAL_ERROR, str(e)).print("")

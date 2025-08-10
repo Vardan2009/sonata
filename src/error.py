@@ -8,6 +8,7 @@ class SonataErrorType(Enum):
     UNKNOWN_ERROR = 0
     INTERNAL_ERROR = 1
     SYNTAX_ERROR = 2
+    NAME_ERROR = 3
 
 
 class SonataError(Exception):
@@ -17,7 +18,12 @@ class SonataError(Exception):
     type: SonataErrorType
 
     def __init__(
-        self, type: SonataErrorType, message: str, file: str = "", line: int = -1, column: int = -1
+        self,
+        type: SonataErrorType,
+        message: str,
+        file: str = "",
+        line: int = -1,
+        column: int = -1,
     ):
         self.file = file
         self.type = type
