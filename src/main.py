@@ -1,8 +1,11 @@
+import traceback
+
 import colorama
 
 import lexer
 import parser
 import interpreter
+import synthesis
 
 import error
 
@@ -27,7 +30,11 @@ def repl() -> int:
 
             ctx = interpreter.InterpreterContext(filename, 120)
 
-            interpreter.visit_node(root, ctx)
+            actx = synthesis.AudioContext()
+
+            interpreter.visit_node(root, ctx, actx)
+
+            synthesis.play_result(actx)
         except error.SonataError as e:
             e.print(line)
 
@@ -44,3 +51,4 @@ if __name__ == "__main__":
         pass
     except Exception as e:
         error.SonataError(error.SonataErrorType.INTERNAL_ERROR, str(e)).print("")
+        traceback.print_exc()

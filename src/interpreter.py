@@ -1,73 +1,21 @@
-from typing import Dict, Union, Optional, List, cast, TypeAlias
+from typing import Any, cast
 
 import lexer
 import parser
+from synthesis import AudioContext, play_note
 
+from interpreter_context import InstrumentCompiled, Instrument, Value, InterpreterContext
 from error import SonataError, SonataErrorType
 
+def visit_assert_type(node: parser.ASTNode, t: type, ctx: InterpreterContext, actx: AudioContext) -> Any:
+    value: Value = visit_node(node, ctx, actx)
 
-Instrument: TypeAlias = Dict[str, List[parser.ASTNode]]
-Value: TypeAlias = Optional[Union[int, float, parser.ASTNode, Instrument]]
+    if type(value) is not t:
+        raise SonataError(SonataErrorType.SYNTAX_ERROR, f"Expected a value of type {t.__name__}", ctx.file, node.line, node.column)
 
+    return value
 
-class Scope:
-    tempo: Optional[float]
-    instrument: Optional[Instrument]
-    symbols: Dict[str, Value]
-
-    def __init__(self, tempo: Optional[float] = None, symbols: Dict[str, Value] = {}):
-        self.tempo = tempo
-        self.symbols = symbols
-
-
-class InterpreterContext:
-    file: str
-    scope_stack: List[Scope]
-
-    def get_symbol(self, symbol_name: str, line: int, column: int) -> Value:
-        for scope in reversed(self.scope_stack):
-            if symbol_name in scope.symbols:
-                return scope.symbols[symbol_name]
-        raise SonataError(
-            SonataErrorType.NAME_ERROR,
-            f"Symbol {symbol_name} not defined",
-            self.file,
-            line,
-            column,
-        )
-
-    def set_symbol(
-        self, symbol_name: str, value: Value, line: int, column: int
-    ) -> None:
-        for scope in reversed(self.scope_stack):
-            if symbol_name in scope.symbols:
-                scope.symbols[symbol_name] = value
-        self.scope_stack[-1].symbols[symbol_name] = value
-
-    def set_tempo(self, new_tempo: float):
-        self.scope_stack[-1].tempo = new_tempo
-
-    def get_tempo(self) -> float:
-        for scope in reversed(self.scope_stack):
-            if scope.tempo:
-                return scope.tempo
-        return 0
-
-    def set_instrument(self, new_instrument: Instrument):
-        self.scope_stack[-1].instrument = new_instrument
-
-    def get_instrument(self) -> Instrument:
-        for scope in reversed(self.scope_stack):
-            if scope.instrument:
-                return scope.instrument
-        return 0
-
-    def __init__(self, file: str, initial_tempo: float):
-        self.file = file
-        self.scope_stack = [Scope(initial_tempo, {})]
-
-
-def visit_node(node: parser.ASTNode, ctx: InterpreterContext) -> Value:
+def visit_node(node: parser.ASTNode, ctx: InterpreterContext, actx: AudioContext) -> Value:
     match type(node):
         case parser.SequenceNode:
             sequence_node: parser.SequenceNode = cast(parser.SequenceNode, node)
@@ -75,12 +23,15 @@ def visit_node(node: parser.ASTNode, ctx: InterpreterContext) -> Value:
             if sequence_node.is_parallel:
                 print("== PARALLEL ==")
             for n in sequence_node.contents:
-                visit_node(n, ctx)
+                visit_node(n, ctx, actx)
             if sequence_node.is_parallel:
                 print("==============")
 
         case parser.NumberNode:
             return cast(parser.NumberNode, node).value
+        
+        case parser.StringNode:
+            return cast(parser.StringNode, node).value
 
         case parser.SymbolNode:
             return ctx.get_symbol(
@@ -89,7 +40,10 @@ def visit_node(node: parser.ASTNode, ctx: InterpreterContext) -> Value:
 
         case parser.NoteNode:
             note_node = cast(parser.NoteNode, node)
-            duration: Value = visit_node(note_node.duration, ctx)
+            duration: float = visit_assert_type(note_node.duration, float, ctx, actx)
+            
+            play_note(note_node.note_symbol, duration, ctx, actx)
+
             print(
                 f"*Played note {note_node.note_symbol}:{duration} beats with tempo {ctx.get_tempo()} BPM*"
             )
@@ -110,14 +64,14 @@ def visit_node(node: parser.ASTNode, ctx: InterpreterContext) -> Value:
 
                 ctx.set_symbol(
                     binop_node.left.symbol,
-                    visit_node(binop_node.right, ctx),
+                    visit_node(binop_node.right, ctx, actx),
                     binop_node.line,
                     binop_node.column,
                 )
                 return None
 
-            left_val: Value = visit_node(binop_node.left, ctx)
-            right_val: Value = visit_node(binop_node.right, ctx)
+            left_val: Value = visit_node(binop_node.left, ctx, actx)
+            right_val: Value = visit_node(binop_node.right, ctx, actx)
 
             if (type(left_val) is not int and type(left_val) is not float) or (
                 type(right_val) is not int and type(right_val) is not float
@@ -149,7 +103,7 @@ def visit_node(node: parser.ASTNode, ctx: InterpreterContext) -> Value:
                     )
 
         case parser.TempoNode:
-            tempo: Value = visit_node(cast(parser.TempoNode, node).tempo, ctx)
+            tempo: Value = visit_node(cast(parser.TempoNode, node).tempo, ctx, actx)
 
             if type(tempo) is not float and type(tempo) is not int:
                 raise SonataError(
@@ -174,6 +128,18 @@ def visit_node(node: parser.ASTNode, ctx: InterpreterContext) -> Value:
             return None
 
         case parser.UseNode:
-            instrument = cast(Instrument, visit_node(node, ctx))
+            instrument: InstrumentCompiled = ctx.get_instrument_conf(cast(parser.UseNode, node).config, node.line,
+                                                             node.column)
             ctx.set_instrument(instrument)
             return None
+
+        case parser.InstrumentNode:
+            instrument_node = cast(parser.InstrumentNode, node)
+
+            result: InstrumentCompiled = {}
+
+            for config_name, values in instrument_node.config.items():
+                values_compiled = list(map(lambda node: visit_assert_type(node, float, ctx, actx), values))
+                result[config_name] = values_compiled
+
+            ctx.set_instrument_conf(instrument_node.instrument_name, result, instrument_node.line, instrument_node.column)

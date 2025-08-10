@@ -28,6 +28,8 @@ class TokenType(Enum):
 
     COLON = 17
 
+    STRING = 18
+
 
 class Token:
     type: TokenType
@@ -69,7 +71,7 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
     }
 
     all_keywords: List[str] = ["tempo", "define", "use", "repeat", "instrument"]
-    instrument_configs_keywords: List[str] = ["adsr", "harmonics"]
+    instrument_configs_keywords: List[str] = ["adsr", "waveform", "sample"]
 
     def tokenize_number() -> None:
         nonlocal line
@@ -94,6 +96,20 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
                 column,
             )
         )
+
+    def tokenize_string() -> None:
+        nonlocal line
+        nonlocal column
+
+        value_str: str = ""
+
+        while ptr < length and src[ptr] != '"':
+            value_str += src[ptr]
+            next_char()
+        
+        next_char()
+
+        result.append(Token(TokenType.STRING, value_str, line, column))
 
     def tokenize_identifier() -> None:
         nonlocal line
@@ -137,20 +153,21 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
         if char in single_char_tokens:
             result.append(Token(single_char_tokens[char], char, line, column))
             next_char()
+        elif char == '"':
+            tokenize_string()
+        elif char.isdigit():
+            tokenize_number()
+        elif char.isalpha():
+            tokenize_identifier()
+        elif char.isspace():
+            skip_whitespace()
         else:
-            if char.isdigit():
-                tokenize_number()
-            elif char.isalpha():
-                tokenize_identifier()
-            elif char.isspace():
-                skip_whitespace()
-            else:
-                raise SonataError(
-                    SonataErrorType.SYNTAX_ERROR,
-                    f"Unknown character `{char}`",
-                    filename,
-                    line,
-                    column,
-                )
+            raise SonataError(
+                SonataErrorType.SYNTAX_ERROR,
+                f"Unknown character `{char}`",
+                filename,
+                line,
+                column,
+            )
 
     return result

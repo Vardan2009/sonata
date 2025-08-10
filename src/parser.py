@@ -36,9 +36,9 @@ class SequenceNode(ASTNode):
 
 
 class NumberNode(ASTNode):
-    value: Union[int, float]
+    value: float
 
-    def __init__(self, value: Union[int, float], line: int, column: int):
+    def __init__(self, value: float, line: int, column: int):
         self.value = value
         super().__init__(line, column)
 
@@ -46,6 +46,16 @@ class NumberNode(ASTNode):
         super().pretty_print(indent)
         print(self.value)
 
+class StringNode(ASTNode):
+    value: str
+
+    def __init__(self, value: str, line: int, column: int):
+        self.value = value
+        super().__init__(line, column)
+
+    def pretty_print(self, indent: int = 0) -> None:
+        return super().pretty_print(indent)
+        print(f"\"{self.value}\"")
 
 class SymbolNode(ASTNode):
     symbol: str
@@ -278,7 +288,7 @@ class Parser:
                     alias, value, command_token.line, command_token.column
                 )
             case "use":
-                config: str = self.expect(lexer.TokenType.IDENTIFIER)
+                config: str = cast(str, self.expect(lexer.TokenType.IDENTIFIER).value)
                 return UseNode(config, command_token.line, command_token.column)
             case "repeat":
                 times: ASTNode = self.parse_expression()
@@ -301,10 +311,13 @@ class Parser:
         match current_token.type:
             case lexer.TokenType.NUMBER:
                 return NumberNode(
-                    cast(Union[int, float], current_token.value),
+                    float(current_token.value),
                     current_token.line,
                     current_token.column,
                 )
+            case lexer.TokenType.STRING:
+                return StringNode(cast(str, current_token.value),current_token.line,
+                    current_token.column)
             case lexer.TokenType.IDENTIFIER:
                 if self.peek().type == lexer.TokenType.COLON:
                     self.advance()
@@ -365,7 +378,7 @@ class Parser:
         config: Dict[str, List[ASTNode]] = {}
 
         while self.peek().type != lexer.TokenType.RPAREN:
-            config_name: str = cast(str, self.expect(lexer.TokenType.IDENTIFIER).value)
+            config_name: str = cast(str, self.expect(lexer.TokenType.INSTRUMENT_CONFIG).value)
             values: List[ASTNode] = []
 
             current_token_type: lexer.TokenType = self.peek().type
