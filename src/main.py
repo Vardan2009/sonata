@@ -46,6 +46,7 @@ def execute_file(path: str) -> int:
     with open(path, "r") as f:
         content = f.read()
         execute_code(content, os.path.basename(path))
+        return 0
 
 
 def main() -> int:
@@ -57,6 +58,7 @@ def main() -> int:
         return execute_file(sys.argv[1])
     else:
         print(f"Sonata {Fore.GREEN}USAGE{Fore.RESET}: {Fore.BLUE}sonata{Fore.RESET} [filepath]")
+        return 0
 
 
 if __name__ == "__main__":
