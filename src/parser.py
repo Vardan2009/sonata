@@ -98,18 +98,6 @@ class TempoNode(ASTNode):
         self.tempo.pretty_print(indent + 1)
 
 
-class DefineNode(ASTNode):
-    def __init__(self, alias: str, value: ASTNode, line: int, column: int):
-        self.alias: str = alias
-        self.value: ASTNode = value
-        super().__init__(line, column)
-
-    def pretty_print(self, indent: int = 0) -> None:
-        super().pretty_print(indent)
-        print(f"Define {self.alias}")
-        self.value.pretty_print(indent + 1)
-
-
 class InstrumentNode(ASTNode):
     def __init__(
         self, name: str, config: Dict[str, List[ASTNode]], line: int, column: int
@@ -252,12 +240,6 @@ class Parser:
             case "tempo":
                 tempo_val: ASTNode = self.parse_expression()
                 return TempoNode(tempo_val, command_token.line, command_token.column)
-            case "define":
-                alias: str = cast(str, self.expect(lexer.TokenType.IDENTIFIER).value)
-                value: ASTNode = self.parse_expression()
-                return DefineNode(
-                    alias, value, command_token.line, command_token.column
-                )
             case "use":
                 config: str = cast(str, self.expect(lexer.TokenType.IDENTIFIER).value)
                 return UseNode(config, command_token.line, command_token.column)

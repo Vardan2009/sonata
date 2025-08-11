@@ -2,18 +2,13 @@ from typing import Any, cast
 
 import lexer
 import parser
-from synthesis import play_note
 
-from structures import Instrument, Value, InterpreterContext
+from structures import Instrument, Value, InterpreterContext, SequenceValue, Note
 from error import SonataError, SonataErrorType
 
-from structures import AudioContext
 
-
-def visit_assert_type(
-    node: parser.ASTNode, t: type, ctx: InterpreterContext, actx: AudioContext
-) -> Any:
-    value: Value = visit_node(node, ctx, actx)
+def visit_assert_type(node: parser.ASTNode, t: type, ctx: InterpreterContext) -> Any:
+    value: Value = visit_node(node, ctx)
 
     if type(value) is not t:
         raise SonataError(
@@ -27,19 +22,20 @@ def visit_assert_type(
     return value
 
 
-def visit_node(
-    node: parser.ASTNode, ctx: InterpreterContext, actx: AudioContext
-) -> Value:
+def visit_node(node: parser.ASTNode, ctx: InterpreterContext) -> Value:
     match type(node):
         case parser.SequenceNode:
             sequence_node: parser.SequenceNode = cast(parser.SequenceNode, node)
 
-            if sequence_node.is_parallel:
-                print("== PARALLEL ==")
+            sequence: SequenceValue = SequenceValue([], sequence_node.is_parallel)
+
             for n in sequence_node.contents:
-                visit_node(n, ctx, actx)
-            if sequence_node.is_parallel:
-                print("==============")
+                val: Value = visit_node(n, ctx)
+
+                if type(val) is Note or type(val) is SequenceValue:
+                    sequence.notes.append(val)
+
+            return sequence
 
         case parser.NumberNode:
             return cast(parser.NumberNode, node).value
@@ -54,11 +50,9 @@ def visit_node(
 
         case parser.NoteNode:
             note_node = cast(parser.NoteNode, node)
-            duration: float = visit_assert_type(note_node.duration, float, ctx, actx)
+            duration: float = visit_assert_type(note_node.duration, float, ctx)
 
-            play_note(note_node.note_symbol, duration, ctx, actx)
-
-            return None
+            return Note(note_node.note_symbol, duration, ctx)
 
         case parser.BinOpNode:
             binop_node: parser.BinOpNode = cast(parser.BinOpNode, node)
@@ -75,14 +69,14 @@ def visit_node(
 
                 ctx.set_symbol(
                     binop_node.left.symbol,
-                    visit_node(binop_node.right, ctx, actx),
+                    visit_node(binop_node.right, ctx),
                     binop_node.line,
                     binop_node.column,
                 )
                 return None
 
-            left_val: Value = visit_node(binop_node.left, ctx, actx)
-            right_val: Value = visit_node(binop_node.right, ctx, actx)
+            left_val: Value = visit_node(binop_node.left, ctx)
+            right_val: Value = visit_node(binop_node.right, ctx)
 
             if (type(left_val) is not int and type(left_val) is not float) or (
                 type(right_val) is not int and type(right_val) is not float
@@ -114,7 +108,7 @@ def visit_node(
                     )
 
         case parser.TempoNode:
-            tempo: Value = visit_node(cast(parser.TempoNode, node).tempo, ctx, actx)
+            tempo: Value = visit_node(cast(parser.TempoNode, node).tempo, ctx)
 
             if type(tempo) is not float and type(tempo) is not int:
                 raise SonataError(
@@ -128,16 +122,6 @@ def visit_node(
             ctx.set_tempo(tempo)
             return tempo
 
-        case parser.DefineNode:
-            define_node = cast(parser.DefineNode, node)
-            ctx.set_symbol(
-                define_node.alias,
-                define_node.value,
-                define_node.line,
-                define_node.column,
-            )
-            return None
-
         case parser.UseNode:
             instrument: Instrument = ctx.get_instrument_conf(
                 cast(parser.UseNode, node).config, node.line, node.column
@@ -147,7 +131,7 @@ def visit_node(
 
         case parser.InstrumentNode:
             instrument_node = cast(parser.InstrumentNode, node)
-            result: Instrument = Instrument(instrument_node, ctx, actx)
+            result: Instrument = Instrument(instrument_node, ctx)
             ctx.set_instrument_conf(
                 instrument_node.instrument_name,
                 result,

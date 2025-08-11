@@ -6,6 +6,7 @@ import lexer
 import parser
 import interpreter
 import synthesis
+import structures
 
 import error
 
@@ -29,12 +30,15 @@ def repl() -> int:
             # root.pretty_print()
 
             ctx = interpreter.InterpreterContext(filename, 120)
-
             actx = synthesis.AudioContext()
 
-            interpreter.visit_node(root, ctx, actx)
+            audio_tree: structures.SequenceValue = interpreter.visit_assert_type(
+                root, structures.SequenceValue, ctx
+            )
 
-            synthesis.play_result(actx)
+            print(audio_tree)
+
+            synthesis.play_result(audio_tree, actx)
         except error.SonataError as e:
             e.print(line)
 

@@ -1,5 +1,5 @@
 from typing import List
-from structures import InterpreterContext, AudioContext, Instrument
+from structures import Note, Instrument, AudioContext, SequenceValue
 
 import numpy as np
 
@@ -42,11 +42,15 @@ def note_to_freq(note: str) -> float:
     return freq
 
 
-def play_result(actx: AudioContext):
+def play_result(root: SequenceValue, actx: AudioContext):
+    root.mixdown(actx)
+
     if len(actx.mixdown) != 0:
         p = PyAudio()
 
-        stream = p.open(format=paFloat32, channels=1, rate=actx.sample_rate, output=True)
+        stream = p.open(
+            format=paFloat32, channels=1, rate=actx.sample_rate, output=True
+        )
 
         stream.write(actx.mixdown.tobytes())
 
@@ -56,8 +60,8 @@ def play_result(actx: AudioContext):
         p.terminate()
 
 
-def play_note(note: str, duration: float, ictx: InterpreterContext, actx: AudioContext):
-    instrument: Instrument = ictx.get_instrument()
+def play_note(note: Note, actx: AudioContext):
+    instrument: Instrument = note.instrument
 
     waveforms: dict[str, np.ufunc] = {
         "sine": np.sin,
@@ -80,7 +84,7 @@ def play_note(note: str, duration: float, ictx: InterpreterContext, actx: AudioC
     decay_samples = int(adsr[1] * actx.sample_rate)
     release_samples = int(adsr[3] * actx.sample_rate)
 
-    note_abs_length = int(duration * actx.sample_rate) + release_samples
+    note_abs_length = int(note.duration * actx.sample_rate) + release_samples
 
     sustain_samples = max(
         note_abs_length - (attack_samples + decay_samples + release_samples), 0
@@ -99,7 +103,7 @@ def play_note(note: str, duration: float, ictx: InterpreterContext, actx: AudioC
         envelope = envelope[:note_abs_length]
 
     t = np.arange(note_abs_length) / actx.sample_rate
-    freq = note_to_freq(note)
+    freq = note_to_freq(note.note)
 
     samples: np.ndarray = wavefunc(2 * np.pi * freq * t).astype(np.float32)
     samples *= envelope

@@ -1,19 +1,47 @@
 from typing import Optional, Dict, List, TypeAlias, Union, cast
-from parser import ASTNode, InstrumentNode
+from parser import InstrumentNode
 
 from error import SonataError, SonataErrorType
 
 import numpy as np
 
-Value: TypeAlias = Optional[Union[int, float, str, ASTNode]]
+
+class Note:
+    def __init__(self, note: str, duration: float, ictx: "InterpreterContext"):
+        self.note: str = note
+        self.duration: float = duration
+        self.instrument: Instrument = ictx.get_instrument()
+
+    def __str__(self) -> str:
+        return f"{self.note}:{self.duration}"
+
+    def mixdown(self, actx: "AudioContext") -> None:
+        from synthesis import play_note
+
+        play_note(self, actx)
 
 
-class AudioContext:
-    def __init__(self) -> None:
-        self.sample_rate: int = 44100
+class SequenceValue:
+    def __init__(self, notes: List[Union[Note, "SequenceValue"]], parallel: bool):
+        self.notes: List[Union[Note, "SequenceValue"]] = notes
+        self.parallel = parallel
 
-        self.mixdown: np.ndarray = np.array([], dtype=np.float32)
-        self.mixdown_ptr: int = 0
+    def __str__(self) -> str:
+        opening: str = "[" if self.parallel else "{"
+        closing: str = "]" if self.parallel else "}"
+        return f"{opening}{' '.join([str(x) for x in self.notes])}{closing}"
+
+    def mixdown(self, actx: "AudioContext") -> None:
+        for i, note in enumerate(self.notes):
+            prev_mixdown_ptr = actx.mixdown_ptr
+
+            note.mixdown(actx)
+
+            if self.parallel and i != len(self.notes) - 1:
+                actx.mixdown_ptr = prev_mixdown_ptr
+
+
+Value: TypeAlias = Optional[Union[int, float, str, Note, SequenceValue]]
 
 
 class Instrument:
@@ -21,12 +49,11 @@ class Instrument:
         self,
         node: Optional["InstrumentNode"] = None,
         ctx: Optional["InterpreterContext"] = None,
-        actx: Optional["AudioContext"] = None,
     ):
         self.adsr: List[float] = [0.1, 0.0, 1.0, 0.1]
         self.waveform: str = "sine"
 
-        if not (node and ctx and actx):
+        if not (node and ctx):
             return
 
         from interpreter import (
@@ -34,7 +61,7 @@ class Instrument:
         )  # kept here to avoid potential circular import
 
         for config_name, values in node.config.items():
-            eval_values = [visit_node(v, ctx, actx) for v in values]
+            eval_values = [visit_node(v, ctx) for v in values]
 
             match config_name:
                 case "waveform":
@@ -70,6 +97,14 @@ class Scope:
         self.defined_instruments: Dict[str, Instrument] = {}
 
 
+class AudioContext:
+    def __init__(self) -> None:
+        self.sample_rate: int = 44100
+
+        self.mixdown: np.ndarray = np.array([], dtype=np.float32)
+        self.mixdown_ptr: int = 0
+
+
 class InterpreterContext:
     def get_symbol(self, symbol_name: str, line: int, column: int) -> Value:
         for scope in reversed(self.scope_stack):
@@ -82,6 +117,9 @@ class InterpreterContext:
             line,
             column,
         )
+
+    def get_current_scope(self) -> Scope:
+        return self.scope_stack[-1]
 
     def set_symbol(
         self, symbol_name: str, value: Value, line: int, column: int
