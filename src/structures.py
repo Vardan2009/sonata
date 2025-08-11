@@ -7,20 +7,21 @@ import numpy as np
 
 Value: TypeAlias = Optional[Union[int, float, str, ASTNode]]
 
+
 class AudioContext:
     def __init__(self) -> None:
         self.sample_rate: int = 44100
-        self.mixdown_type: TypeAlias = np.float32
 
         self.mixdown: np.ndarray = np.array([], dtype=np.float32)
         self.mixdown_ptr: int = 0
+
 
 class Instrument:
     def __init__(
         self,
         node: Optional["InstrumentNode"] = None,
         ctx: Optional["InterpreterContext"] = None,
-        actx: Optional["AudioContext"] = None
+        actx: Optional["AudioContext"] = None,
     ):
         self.adsr: List[float] = [0.1, 0.0, 1.0, 0.1]
         self.waveform: str = "sine"
@@ -28,7 +29,9 @@ class Instrument:
         if not (node and ctx and actx):
             return
 
-        from interpreter import visit_node  # kept here to avoid potential circular import
+        from interpreter import (
+            visit_node,
+        )  # kept here to avoid potential circular import
 
         for config_name, values in node.config.items():
             eval_values = [visit_node(v, ctx, actx) for v in values]
@@ -37,17 +40,21 @@ class Instrument:
                 case "waveform":
                     val = eval_values[0]
                     if not isinstance(val, str):
-                        raise TypeError(f"waveform must be a string, got {type(val).__name__}")
+                        raise TypeError(
+                            f"waveform must be a string, got {type(val).__name__}"
+                        )
                     self.waveform = val
                 case "adsr":
                     if not all(isinstance(x, (float, int)) for x in eval_values):
                         raise TypeError("adsr values must be numeric")
-                    self.adsr = list(map(float, eval_values))
+                    self.adsr = list(map(float, cast(List[float], eval_values)))
                 case _:
                     raise SonataError(
                         SonataErrorType.NAME_ERROR,
                         f"No such instrument config entry `{config_name}`",
-                        ctx.file, node.line, node.column
+                        ctx.file,
+                        node.line,
+                        node.column,
                     )
 
     @classmethod
@@ -61,6 +68,7 @@ class Scope:
         self.instrument: Optional[Instrument] = None
         self.symbols: Dict[str, Value] = symbols
         self.defined_instruments: Dict[str, Instrument] = {}
+
 
 class InterpreterContext:
     def get_symbol(self, symbol_name: str, line: int, column: int) -> Value:
@@ -83,8 +91,9 @@ class InterpreterContext:
                 scope.symbols[symbol_name] = value
         self.scope_stack[-1].symbols[symbol_name] = value
 
-
-    def get_instrument_conf(self, symbol_name: str, line: int, column: int) -> Instrument:
+    def get_instrument_conf(
+        self, symbol_name: str, line: int, column: int
+    ) -> Instrument:
         for scope in reversed(self.scope_stack):
             if symbol_name in scope.defined_instruments:
                 return scope.defined_instruments[symbol_name]
@@ -117,7 +126,7 @@ class InterpreterContext:
         for scope in reversed(self.scope_stack):
             if scope.instrument:
                 return scope.instrument
-            
+
         self.scope_stack[-1].instrument = Instrument.empty()
         return self.scope_stack[-1].instrument
 

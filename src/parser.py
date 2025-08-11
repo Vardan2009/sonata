@@ -14,7 +14,6 @@ class ASTNode:
 
 
 class SequenceNode(ASTNode):
-
     def __init__(
         self, is_parallel: bool, contents: List[ASTNode], line: int, column: int
     ):
@@ -39,6 +38,7 @@ class NumberNode(ASTNode):
         super().pretty_print(indent)
         print(self.value)
 
+
 class StringNode(ASTNode):
     def __init__(self, value: str, line: int, column: int):
         self.value: str = value
@@ -46,7 +46,8 @@ class StringNode(ASTNode):
 
     def pretty_print(self, indent: int = 0) -> None:
         super().pretty_print(indent)
-        print(f"\"{self.value}\"")
+        print(f'"{self.value}"')
+
 
 class SymbolNode(ASTNode):
     def __init__(self, symbol: str, line: int, column: int):
@@ -110,7 +111,9 @@ class DefineNode(ASTNode):
 
 
 class InstrumentNode(ASTNode):
-    def __init__(self, name: str, config: Dict[str, List[ASTNode]], line: int, column: int):
+    def __init__(
+        self, name: str, config: Dict[str, List[ASTNode]], line: int, column: int
+    ):
         self.instrument_name: str = name
         self.config: Dict[str, List[ASTNode]] = config
         super().__init__(line, column)
@@ -124,6 +127,7 @@ class InstrumentNode(ASTNode):
             print(name)
             for value in values:
                 value.pretty_print(indent + 2)
+
 
 class UseNode(ASTNode):
     def __init__(self, config: str, line: int, column: int):
@@ -146,6 +150,7 @@ class RepeatNode(ASTNode):
         print("Repeat")
         self.times.pretty_print(indent + 1)
         self.root.pretty_print(indent + 1)
+
 
 class Parser:
     precedence: Dict[lexer.TokenType, int] = {
@@ -282,8 +287,11 @@ class Parser:
                     current_token.column,
                 )
             case lexer.TokenType.STRING:
-                return StringNode(cast(str, current_token.value),current_token.line,
-                    current_token.column)
+                return StringNode(
+                    cast(str, current_token.value),
+                    current_token.line,
+                    current_token.column,
+                )
             case lexer.TokenType.IDENTIFIER:
                 if self.peek().type == lexer.TokenType.COLON:
                     self.advance()
@@ -344,18 +352,23 @@ class Parser:
         config: Dict[str, List[ASTNode]] = {}
 
         while self.peek().type != lexer.TokenType.RPAREN:
-            config_name: str = cast(str, self.expect(lexer.TokenType.INSTRUMENT_CONFIG).value)
+            config_name: str = cast(
+                str, self.expect(lexer.TokenType.INSTRUMENT_CONFIG).value
+            )
             values: List[ASTNode] = []
 
             current_token_type: lexer.TokenType = self.peek().type
 
-            while current_token_type != lexer.TokenType.RPAREN and current_token_type != lexer.TokenType.COMMA:
+            while (
+                current_token_type != lexer.TokenType.RPAREN
+                and current_token_type != lexer.TokenType.COMMA
+            ):
                 values.append(self.parse_expression())
 
                 if self.peek().type == lexer.TokenType.COMMA:
                     self.advance()
                     break
-                    
+
                 if self.peek().type == lexer.TokenType.RPAREN:
                     break
 

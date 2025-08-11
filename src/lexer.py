@@ -108,7 +108,7 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
         while ptr < length and src[ptr] != '"':
             value_str += src[ptr]
             next_char()
-        
+
         next_char()
 
         result.append(Token(TokenType.STRING, value_str, line, column))

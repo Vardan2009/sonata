@@ -9,15 +9,27 @@ from error import SonataError, SonataErrorType
 
 from structures import AudioContext
 
-def visit_assert_type(node: parser.ASTNode, t: type, ctx: InterpreterContext, actx: AudioContext) -> Any:
+
+def visit_assert_type(
+    node: parser.ASTNode, t: type, ctx: InterpreterContext, actx: AudioContext
+) -> Any:
     value: Value = visit_node(node, ctx, actx)
 
     if type(value) is not t:
-        raise SonataError(SonataErrorType.SYNTAX_ERROR, f"Expected a value of type {t.__name__}", ctx.file, node.line, node.column)
+        raise SonataError(
+            SonataErrorType.SYNTAX_ERROR,
+            f"Expected a value of type {t.__name__}",
+            ctx.file,
+            node.line,
+            node.column,
+        )
 
     return value
 
-def visit_node(node: parser.ASTNode, ctx: InterpreterContext, actx: AudioContext) -> Value:
+
+def visit_node(
+    node: parser.ASTNode, ctx: InterpreterContext, actx: AudioContext
+) -> Value:
     match type(node):
         case parser.SequenceNode:
             sequence_node: parser.SequenceNode = cast(parser.SequenceNode, node)
@@ -31,7 +43,7 @@ def visit_node(node: parser.ASTNode, ctx: InterpreterContext, actx: AudioContext
 
         case parser.NumberNode:
             return cast(parser.NumberNode, node).value
-        
+
         case parser.StringNode:
             return cast(parser.StringNode, node).value
 
@@ -43,7 +55,7 @@ def visit_node(node: parser.ASTNode, ctx: InterpreterContext, actx: AudioContext
         case parser.NoteNode:
             note_node = cast(parser.NoteNode, node)
             duration: float = visit_assert_type(note_node.duration, float, ctx, actx)
-            
+
             play_note(note_node.note_symbol, duration, ctx, actx)
 
             print(
@@ -130,15 +142,27 @@ def visit_node(node: parser.ASTNode, ctx: InterpreterContext, actx: AudioContext
             return None
 
         case parser.UseNode:
-            instrument: Instrument = ctx.get_instrument_conf(cast(parser.UseNode, node).config, node.line,
-                                                             node.column)
+            instrument: Instrument = ctx.get_instrument_conf(
+                cast(parser.UseNode, node).config, node.line, node.column
+            )
             ctx.set_instrument(instrument)
             return None
 
         case parser.InstrumentNode:
             instrument_node = cast(parser.InstrumentNode, node)
             result: Instrument = Instrument(instrument_node, ctx, actx)
-            ctx.set_instrument_conf(instrument_node.instrument_name, result, instrument_node.line, instrument_node.column)
+            ctx.set_instrument_conf(
+                instrument_node.instrument_name,
+                result,
+                instrument_node.line,
+                instrument_node.column,
+            )
 
         case _:
-            raise SonataError(SonataErrorType.INTERNAL_ERROR, "Unhandled node type", ctx.file, node.line, node.column)
+            raise SonataError(
+                SonataErrorType.INTERNAL_ERROR,
+                "Unhandled node type",
+                ctx.file,
+                node.line,
+                node.column,
+            )
