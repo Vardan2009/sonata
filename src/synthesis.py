@@ -84,7 +84,9 @@ def play_note(note: Note, actx: AudioContext):
     decay_samples = int(adsr[1] * actx.sample_rate)
     release_samples = int(adsr[3] * actx.sample_rate)
 
-    note_abs_length = int(note.duration * actx.sample_rate) + release_samples
+    duration = note.duration * (60 / note.tempo)
+
+    note_abs_length = int(duration * actx.sample_rate) + release_samples
 
     sustain_samples = max(
         note_abs_length - (attack_samples + decay_samples + release_samples), 0

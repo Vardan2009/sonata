@@ -11,6 +11,7 @@ class Note:
         self.note: str = note
         self.duration: float = duration
         self.instrument: Instrument = ictx.get_instrument()
+        self.tempo: float = ictx.get_tempo()
 
     def __str__(self) -> str:
         return f"{self.note}:{self.duration}"
