@@ -43,16 +43,17 @@ def note_to_freq(note: str) -> float:
 
 
 def play_result(actx: AudioContext):
-    p = PyAudio()
+    if len(actx.mixdown) != 0:
+        p = PyAudio()
 
-    stream = p.open(format=paFloat32, channels=1, rate=actx.sample_rate, output=True)
+        stream = p.open(format=paFloat32, channels=1, rate=actx.sample_rate, output=True)
 
-    stream.write(actx.mixdown.tobytes())
+        stream.write(actx.mixdown.tobytes())
 
-    stream.stop_stream()
-    stream.close()
+        stream.stop_stream()
+        stream.close()
 
-    p.terminate()
+        p.terminate()
 
 
 def play_note(note: str, duration: float, ictx: InterpreterContext, actx: AudioContext):
@@ -73,7 +74,6 @@ def play_note(note: str, duration: float, ictx: InterpreterContext, actx: AudioC
     waveform: str = instrument.waveform
     adsr: List[float] = instrument.adsr
 
-    print(waveform)
     wavefunc: np.ufunc = waveforms[waveform]
 
     attack_samples = int(adsr[0] * actx.sample_rate)

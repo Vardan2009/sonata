@@ -58,9 +58,6 @@ def visit_node(
 
             play_note(note_node.note_symbol, duration, ctx, actx)
 
-            print(
-                f"*Played note {note_node.note_symbol}:{duration} beats with tempo {ctx.get_tempo()} BPM*"
-            )
             return None
 
         case parser.BinOpNode:

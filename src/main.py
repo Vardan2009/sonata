@@ -26,7 +26,7 @@ def repl() -> int:
 
             root: parser.ASTNode = _parser.parse()
 
-            root.pretty_print()
+            # root.pretty_print()
 
             ctx = interpreter.InterpreterContext(filename, 120)
 
