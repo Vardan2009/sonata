@@ -1,30 +1,25 @@
 import lexer
 import error
 
-from typing import List, Union, Dict, cast
+from typing import List, Dict, cast
 
 
 class ASTNode:
-    line: int
-    column: int
-
     def __init__(self, line: int, column: int):
-        self.line = line
-        self.column = column
+        self.line: int = line
+        self.column: int = column
 
     def pretty_print(self, indent: int = 0) -> None:
         print(" " * (indent * 2), end="")
 
 
 class SequenceNode(ASTNode):
-    is_parallel: bool
-    contents: List[ASTNode]
 
     def __init__(
         self, is_parallel: bool, contents: List[ASTNode], line: int, column: int
     ):
-        self.is_parallel = is_parallel
-        self.contents = contents
+        self.is_parallel: bool = is_parallel
+        self.contents: List[ASTNode] = contents
         super().__init__(line, column)
 
     def pretty_print(self, indent: int = 0) -> None:
@@ -36,10 +31,8 @@ class SequenceNode(ASTNode):
 
 
 class NumberNode(ASTNode):
-    value: float
-
     def __init__(self, value: float, line: int, column: int):
-        self.value = value
+        self.value: float = value
         super().__init__(line, column)
 
     def pretty_print(self, indent: int = 0) -> None:
@@ -47,21 +40,17 @@ class NumberNode(ASTNode):
         print(self.value)
 
 class StringNode(ASTNode):
-    value: str
-
     def __init__(self, value: str, line: int, column: int):
-        self.value = value
+        self.value: str = value
         super().__init__(line, column)
 
     def pretty_print(self, indent: int = 0) -> None:
-        return super().pretty_print(indent)
+        super().pretty_print(indent)
         print(f"\"{self.value}\"")
 
 class SymbolNode(ASTNode):
-    symbol: str
-
     def __init__(self, symbol: str, line: int, column: int):
-        self.symbol = symbol
+        self.symbol: str = symbol
         super().__init__(line, column)
 
     def pretty_print(self, indent: int = 0) -> None:
@@ -70,12 +59,9 @@ class SymbolNode(ASTNode):
 
 
 class NoteNode(ASTNode):
-    note_symbol: str
-    duration: ASTNode
-
     def __init__(self, note_symbol: str, duration: ASTNode, line: int, column: int):
-        self.note_symbol = note_symbol
-        self.duration = duration
+        self.note_symbol: str = note_symbol
+        self.duration: ASTNode = duration
         super().__init__(line, column)
 
     def pretty_print(self, indent: int = 0) -> None:
@@ -85,16 +71,12 @@ class NoteNode(ASTNode):
 
 
 class BinOpNode(ASTNode):
-    op: lexer.TokenType
-    left: ASTNode
-    right: ASTNode
-
     def __init__(
         self, op: lexer.TokenType, left: ASTNode, right: ASTNode, line: int, column: int
     ):
-        self.left = left
-        self.right = right
-        self.op = op
+        self.left: ASTNode = left
+        self.right: ASTNode = right
+        self.op: lexer.TokenType = op
         super().__init__(line, column)
 
     def pretty_print(self, indent: int = 0) -> None:
@@ -105,10 +87,8 @@ class BinOpNode(ASTNode):
 
 
 class TempoNode(ASTNode):
-    tempo: ASTNode
-
     def __init__(self, tempo: ASTNode, line: int, column: int):
-        self.tempo = tempo
+        self.tempo: ASTNode = tempo
         super().__init__(line, column)
 
     def pretty_print(self, indent: int = 0) -> None:
@@ -118,12 +98,9 @@ class TempoNode(ASTNode):
 
 
 class DefineNode(ASTNode):
-    alias: str
-    value: ASTNode
-
     def __init__(self, alias: str, value: ASTNode, line: int, column: int):
-        self.alias = alias
-        self.value = value
+        self.alias: str = alias
+        self.value: ASTNode = value
         super().__init__(line, column)
 
     def pretty_print(self, indent: int = 0) -> None:
@@ -133,12 +110,9 @@ class DefineNode(ASTNode):
 
 
 class InstrumentNode(ASTNode):
-    instrument_name: str
-    config: Dict[str, List[ASTNode]]
-
     def __init__(self, name: str, config: Dict[str, List[ASTNode]], line: int, column: int):
-        self.instrument_name = name
-        self.config = config
+        self.instrument_name: str = name
+        self.config: Dict[str, List[ASTNode]] = config
         super().__init__(line, column)
 
     def pretty_print(self, indent: int = 0) -> None:
@@ -152,10 +126,8 @@ class InstrumentNode(ASTNode):
                 value.pretty_print(indent + 2)
 
 class UseNode(ASTNode):
-    config: str
-
     def __init__(self, config: str, line: int, column: int):
-        self.config = config
+        self.config: str = config
         super().__init__(line, column)
 
     def pretty_print(self, indent: int = 0) -> None:
@@ -164,12 +136,9 @@ class UseNode(ASTNode):
 
 
 class RepeatNode(ASTNode):
-    times: ASTNode
-    root: ASTNode
-
     def __init__(self, times: ASTNode, root: ASTNode, line: int, column: int):
-        self.times = times
-        self.root = root
+        self.times: ASTNode = times
+        self.root: ASTNode = root
         super().__init__(line, column)
 
     def pretty_print(self, indent: int = 0) -> None:
@@ -179,10 +148,6 @@ class RepeatNode(ASTNode):
         self.root.pretty_print(indent + 1)
 
 class Parser:
-    tokens: List[lexer.Token]
-    file: str
-    ptr: int = 0
-
     precedence: Dict[lexer.TokenType, int] = {
         lexer.TokenType.PLUS: 1,
         lexer.TokenType.MINUS: 1,
@@ -192,8 +157,9 @@ class Parser:
     }
 
     def __init__(self, file: str, tokens: List[lexer.Token]):
-        self.tokens = tokens
-        self.file = file
+        self.tokens: List[lexer.Token] = tokens
+        self.file: str = file
+        self.ptr: int = 0
 
     def bound_check(self):
         if self.ptr >= len(self.tokens):

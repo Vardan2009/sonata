@@ -2,10 +2,12 @@ from typing import Any, cast
 
 import lexer
 import parser
-from synthesis import AudioContext, play_note
+from synthesis import play_note
 
-from interpreter_context import InstrumentCompiled, Instrument, Value, InterpreterContext
+from structures import Instrument, Value, InterpreterContext
 from error import SonataError, SonataErrorType
+
+from structures import AudioContext
 
 def visit_assert_type(node: parser.ASTNode, t: type, ctx: InterpreterContext, actx: AudioContext) -> Any:
     value: Value = visit_node(node, ctx, actx)
@@ -128,18 +130,15 @@ def visit_node(node: parser.ASTNode, ctx: InterpreterContext, actx: AudioContext
             return None
 
         case parser.UseNode:
-            instrument: InstrumentCompiled = ctx.get_instrument_conf(cast(parser.UseNode, node).config, node.line,
+            instrument: Instrument = ctx.get_instrument_conf(cast(parser.UseNode, node).config, node.line,
                                                              node.column)
             ctx.set_instrument(instrument)
             return None
 
         case parser.InstrumentNode:
             instrument_node = cast(parser.InstrumentNode, node)
-
-            result: InstrumentCompiled = {}
-
-            for config_name, values in instrument_node.config.items():
-                values_compiled = list(map(lambda node: visit_assert_type(node, float, ctx, actx), values))
-                result[config_name] = values_compiled
-
+            result: Instrument = Instrument(instrument_node, ctx, actx)
             ctx.set_instrument_conf(instrument_node.instrument_name, result, instrument_node.line, instrument_node.column)
+
+        case _:
+            raise SonataError(SonataErrorType.INTERNAL_ERROR, "Unhandled node type", ctx.file, node.line, node.column)

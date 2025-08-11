@@ -1,17 +1,9 @@
-from typing import List, cast, TypeAlias
-from interpreter_context import InterpreterContext, InstrumentCompiled
-from error import SonataError, SonataErrorType
+from typing import List
+from structures import InterpreterContext, AudioContext, Instrument
 
 import numpy as np
 
 from pyaudio import PyAudio, paFloat32
-
-class AudioContext:
-    sample_rate: int = 44100
-    mixdown_type: TypeAlias = np.float32
-
-    mixdown: np.ndarray = np.array([], dtype=mixdown_type)
-    mixdown_ptr: int = 0
 
 def note_to_freq(note: str) -> float:
     note = note.upper()
@@ -55,35 +47,21 @@ def play_result(actx: AudioContext):
     p.terminate()
 
 def play_note(note: str, duration: float, ictx: InterpreterContext, actx: AudioContext):
-    from interpreter import visit_assert_type
     
-    instrument: InstrumentCompiled = ictx.get_instrument()
+    instrument: Instrument = ictx.get_instrument()
 
     waveforms: dict[str, np.ufunc] = {
         "sine": np.sin,
-        "square": np.frompyfunc(lambda x: np.sign(np.sin(x)), 1, 1)
+        "square": np.frompyfunc(lambda x: np.sign(np.sin(x)), 1, 1),
+        "triangle": np.frompyfunc(lambda x: 2/np.pi * np.arcsin(np.sin(x)), 1, 1),
+        "sawtooth": np.frompyfunc(lambda x: 2*(x/ (2*np.pi) - np.floor(x/(2*np.pi) + 0.5)), 1, 1),
+        "reverse_sawtooth": np.frompyfunc(lambda x: -2*(x/ (2*np.pi) - np.floor(x/(2*np.pi) + 0.5)), 1, 1)
     }
 
-    waveform: str = "sine"
+    waveform: str = instrument.waveform
+    adsr: List[float] = instrument.adsr
 
-
-    adsr: List[float] = [0, 0, 0, 0]
-
-    for config, values in instrument.items():
-        match config:
-            case "sample":
-                raise SonataError(SonataErrorType.INTERNAL_ERROR, "Sample-based instruments not supported yet", "", -1, -1)
-            case "waveform":
-                waveform_name = visit_assert_type(values[0], str, ictx, actx)
-                if waveform_name not in waveforms.keys():
-                    raise SonataError(SonataErrorType.NAME_ERROR, f"No such waveform {values[0]}", "", -1, -1)
-                waveform = waveform_name
-            case "adsr":
-                adsr = values
-            case _:
-                raise SonataError(SonataErrorType.NAME_ERROR, f"No such instrument config {config}", "", -1, -1)
-
-
+    print(waveform)
     wavefunc: np.ufunc = waveforms[waveform]
 
     attack_samples  = int(adsr[0] * actx.sample_rate)

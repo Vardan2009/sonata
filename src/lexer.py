@@ -103,6 +103,8 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
 
         value_str: str = ""
 
+        next_char()
+
         while ptr < length and src[ptr] != '"':
             value_str += src[ptr]
             next_char()
