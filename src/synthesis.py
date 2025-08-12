@@ -8,7 +8,7 @@ from pyaudio import PyAudio, paFloat32
 def note_to_freq(note: str) -> float:
     if note[0] == "_":
         return 0
-    
+
     note = note[0].upper() + note[1:]
 
     note_offsets = {

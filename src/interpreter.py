@@ -151,7 +151,7 @@ def visit_node(node: parser.ASTNode, ctx: InterpreterContext) -> Value:
 
                 if type(val) is Note or type(val) is SequenceValue:
                     sequence.notes.append(val)
-            
+
             return sequence
 
         case _:

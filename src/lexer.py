@@ -119,7 +119,9 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
 
         value_str: str = ""
 
-        while ptr < length and (src[ptr].isalnum() or src[ptr] == "_" or src[ptr] == "#"):
+        while ptr < length and (
+            src[ptr].isalnum() or src[ptr] == "_" or src[ptr] == "#"
+        ):
             value_str += src[ptr]
             next_char()
 
