@@ -43,7 +43,7 @@ def note_to_freq(note: str) -> float:
 
 
 def play_result(root: SequenceValue, actx: AudioContext):
-    root.mixdown(actx)
+    root.mixdown(actx, 1)
 
     if len(actx.mixdown) != 0:
         p = PyAudio()
@@ -60,7 +60,7 @@ def play_result(root: SequenceValue, actx: AudioContext):
         p.terminate()
 
 
-def play_note(note: Note, actx: AudioContext):
+def play_note(note: Note, actx: AudioContext, num_in_parallel: int = 1):
     instrument: Instrument = note.instrument
 
     waveforms: dict[str, np.ufunc] = {
@@ -108,7 +108,7 @@ def play_note(note: Note, actx: AudioContext):
     freq = note_to_freq(note.note)
 
     samples: np.ndarray = wavefunc(2 * np.pi * freq * t).astype(np.float32)
-    samples *= envelope
+    samples *= envelope * (1 / num_in_parallel)
 
     mixdown_result_length = max(len(actx.mixdown), actx.mixdown_ptr + note_abs_length)
     mixdown_result = np.zeros(mixdown_result_length, dtype=np.float32)
@@ -116,16 +116,6 @@ def play_note(note: Note, actx: AudioContext):
     mixdown_result[: len(actx.mixdown)] += actx.mixdown
 
     mixdown_result[actx.mixdown_ptr : actx.mixdown_ptr + note_abs_length] += samples
-
-    max_val = np.max(np.abs(mixdown_result))
-    if max_val > 0:
-        if np.issubdtype(mixdown_result.dtype, np.floating):
-            mixdown_result /= max_val
-        else:
-            max_int = np.finfo(mixdown_result.dtype).max
-            mixdown_result = (
-                mixdown_result.astype(np.float32) / max_val * max_int
-            ).astype(np.float32)
 
     actx.mixdown = mixdown_result
     actx.mixdown_ptr += note_abs_length - release_samples

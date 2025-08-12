@@ -16,10 +16,10 @@ class Note:
     def __str__(self) -> str:
         return f"{self.note}:{self.duration}"
 
-    def mixdown(self, actx: "AudioContext") -> None:
+    def mixdown(self, actx: "AudioContext", num_in_parallel: int) -> None:
         from synthesis import play_note
 
-        play_note(self, actx)
+        play_note(self, actx, num_in_parallel)
 
 
 class SequenceValue:
@@ -32,14 +32,20 @@ class SequenceValue:
         closing: str = "]" if self.parallel else "}"
         return f"{opening}{' '.join([str(x) for x in self.notes])}{closing}"
 
-    def mixdown(self, actx: "AudioContext") -> None:
-        for i, note in enumerate(self.notes):
-            prev_mixdown_ptr = actx.mixdown_ptr
+    def mixdown(self, actx: "AudioContext", num_in_parallel: int) -> None:
+        parallel_add = len(self.notes) if self.parallel else 0
+        max_mixdown_ptr = actx.mixdown_ptr
+        prev_mixdown_ptr = actx.mixdown_ptr
 
-            note.mixdown(actx)
-
-            if self.parallel and i != len(self.notes) - 1:
+        for note in self.notes:
+            note.mixdown(actx, num_in_parallel + parallel_add)
+            max_mixdown_ptr = max(actx.mixdown_ptr, max_mixdown_ptr)
+            if self.parallel:
                 actx.mixdown_ptr = prev_mixdown_ptr
+        
+        if self.parallel:
+            actx.mixdown_ptr = max_mixdown_ptr
+        
 
 
 Value: TypeAlias = Optional[Union[int, float, str, Note, SequenceValue]]
