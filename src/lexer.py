@@ -144,6 +144,19 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
         ptr += 1
         column += 1
 
+    def skip_comment() -> None:
+        nonlocal ptr
+        nonlocal line
+        nonlocal column
+
+        next_char()
+        while ptr < length and src[ptr] != '\n':
+            next_char()
+        
+        next_char()
+        line += 1
+        column = 0
+
     def skip_whitespace() -> None:
         nonlocal ptr
         nonlocal line
@@ -166,6 +179,8 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
             tokenize_number()
         elif char.isalpha() or char == "_":
             tokenize_identifier()
+        elif char == '#':
+            skip_comment()
         elif char.isspace():
             skip_whitespace()
         else:
