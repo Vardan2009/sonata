@@ -42,10 +42,9 @@ class SequenceValue:
             max_mixdown_ptr = max(actx.mixdown_ptr, max_mixdown_ptr)
             if self.parallel:
                 actx.mixdown_ptr = prev_mixdown_ptr
-        
+
         if self.parallel:
             actx.mixdown_ptr = max_mixdown_ptr
-        
 
 
 Value: TypeAlias = Optional[Union[int, float, str, Note, SequenceValue]]

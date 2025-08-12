@@ -32,6 +32,7 @@ def execute_code(src: str, filename: str) -> None:
     except error.SonataError as e:
         e.print(src)
 
+
 def repl() -> int:
     while True:
         print("Sonata % ", end="")
@@ -42,6 +43,7 @@ def repl() -> int:
 
         execute_code(line, "<stdin>")
 
+
 def execute_file(path: str) -> int:
     with open(path, "r") as f:
         content = f.read()
@@ -51,13 +53,15 @@ def execute_file(path: str) -> int:
 
 def main() -> int:
     colorama.init()
-    
+
     if len(sys.argv) == 1:
         return repl()
     elif len(sys.argv) == 2:
         return execute_file(sys.argv[1])
     else:
-        print(f"Sonata {Fore.GREEN}USAGE{Fore.RESET}: {Fore.BLUE}sonata{Fore.RESET} [filepath]")
+        print(
+            f"Sonata {Fore.GREEN}USAGE{Fore.RESET}: {Fore.BLUE}sonata{Fore.RESET} [filepath]"
+        )
         return 0
 
 

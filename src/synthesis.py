@@ -1,4 +1,3 @@
-from typing import List
 from structures import Note, Instrument, AudioContext, SequenceValue
 
 import numpy as np
@@ -60,62 +59,80 @@ def play_result(root: SequenceValue, actx: AudioContext):
         p.terminate()
 
 
-def play_note(note: Note, actx: AudioContext, num_in_parallel: int = 1):
+def _square_wave(x: np.ndarray) -> np.ndarray:
+    return np.sign(np.sin(x))
+
+
+def _triangle_wave(x: np.ndarray) -> np.ndarray:
+    return 2 / np.pi * np.arcsin(np.sin(x))
+
+
+def _sawtooth_wave(x: np.ndarray) -> np.ndarray:
+    return 2 * (x / (2 * np.pi) - np.floor(x / (2 * np.pi) + 0.5))
+
+
+def _reverse_sawtooth_wave(x: np.ndarray) -> np.ndarray:
+    return -2 * (x / (2 * np.pi) - np.floor(x / (2 * np.pi) + 0.5))
+
+
+WAVEFORMS: dict[str, np.ufunc] = {
+    "sine": np.sin,
+    "square": np.frompyfunc(_square_wave, 1, 1),
+    "triangle": np.frompyfunc(_triangle_wave, 1, 1),
+    "sawtooth": np.frompyfunc(_sawtooth_wave, 1, 1),
+    "reverse_sawtooth": np.frompyfunc(_reverse_sawtooth_wave, 1, 1),
+}
+
+
+def play_note(note: "Note", actx: "AudioContext", num_in_parallel: int = 1):
     instrument: Instrument = note.instrument
-
-    waveforms: dict[str, np.ufunc] = {
-        "sine": np.sin,
-        "square": np.frompyfunc(lambda x: np.sign(np.sin(x)), 1, 1),
-        "triangle": np.frompyfunc(lambda x: 2 / np.pi * np.arcsin(np.sin(x)), 1, 1),
-        "sawtooth": np.frompyfunc(
-            lambda x: 2 * (x / (2 * np.pi) - np.floor(x / (2 * np.pi) + 0.5)), 1, 1
-        ),
-        "reverse_sawtooth": np.frompyfunc(
-            lambda x: -2 * (x / (2 * np.pi) - np.floor(x / (2 * np.pi) + 0.5)), 1, 1
-        ),
-    }
-
-    waveform: str = instrument.waveform
-    adsr: List[float] = instrument.adsr
-
-    wavefunc: np.ufunc = waveforms[waveform]
+    adsr = instrument.adsr
+    wavefunc = WAVEFORMS[instrument.waveform]
 
     attack_samples = int(adsr[0] * actx.sample_rate)
     decay_samples = int(adsr[1] * actx.sample_rate)
     release_samples = int(adsr[3] * actx.sample_rate)
 
     duration = note.duration * (60 / note.tempo)
-
     note_abs_length = int(duration * actx.sample_rate) + release_samples
 
     sustain_samples = max(
         note_abs_length - (attack_samples + decay_samples + release_samples), 0
     )
 
-    attack_env = np.linspace(0, 1, attack_samples, endpoint=False)
-    decay_env = np.linspace(1, adsr[2], decay_samples, endpoint=False)
-    sustain_env = np.full(sustain_samples, adsr[2])
-    release_env = np.linspace(adsr[2], 0, release_samples, endpoint=True)
+    envelope = np.empty(note_abs_length, dtype=np.float32)
+    
+    pos = 0
+    envelope[pos : pos + attack_samples] = np.linspace(
+        0, 1, attack_samples, endpoint=False, dtype=np.float32
+    )
 
-    envelope = np.concatenate([attack_env, decay_env, sustain_env, release_env])
+    pos += attack_samples
+    envelope[pos : pos + decay_samples] = np.linspace(
+        1, adsr[2], decay_samples, endpoint=False, dtype=np.float32
+    )
+    
+    pos += decay_samples
+    envelope[pos : pos + sustain_samples] = adsr[2]
 
-    if len(envelope) < note_abs_length:
-        envelope = np.pad(envelope, (0, note_abs_length - len(envelope)))
-    else:
-        envelope = envelope[:note_abs_length]
+    pos += sustain_samples
+    envelope[pos : pos + release_samples] = np.linspace(
+        adsr[2], 0, release_samples, endpoint=True, dtype=np.float32
+    )
 
-    t = np.arange(note_abs_length) / actx.sample_rate
-    freq = note_to_freq(note.note)
+    t = np.arange(note_abs_length, dtype=np.float32) * (
+        2 * np.pi * note_to_freq(note.note) / actx.sample_rate
+    )
 
-    samples: np.ndarray = wavefunc(2 * np.pi * freq * t).astype(np.float32)
-    samples *= envelope * (1 / num_in_parallel)
+    samples = wavefunc(t).astype(np.float32)
+    samples *= envelope
+    samples *= 1.0 / num_in_parallel
 
-    mixdown_result_length = max(len(actx.mixdown), actx.mixdown_ptr + note_abs_length)
-    mixdown_result = np.zeros(mixdown_result_length, dtype=np.float32)
+    needed_len = actx.mixdown_ptr + note_abs_length
+    if needed_len > len(actx.mixdown):
+        actx.mixdown = np.pad(
+            actx.mixdown, (0, needed_len - len(actx.mixdown)), constant_values=0
+        )
 
-    mixdown_result[: len(actx.mixdown)] += actx.mixdown
-
-    mixdown_result[actx.mixdown_ptr : actx.mixdown_ptr + note_abs_length] += samples
-
-    actx.mixdown = mixdown_result
+    actx.mixdown[actx.mixdown_ptr : actx.mixdown_ptr + note_abs_length] += samples
     actx.mixdown_ptr += note_abs_length - release_samples
