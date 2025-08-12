@@ -102,6 +102,8 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
         nonlocal column
 
         value_str: str = ""
+        cur_column: int = column
+
 
         next_char()
 
@@ -111,13 +113,14 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
 
         next_char()
 
-        result.append(Token(TokenType.STRING, value_str, line, column))
+        result.append(Token(TokenType.STRING, value_str, line, cur_column))
 
     def tokenize_identifier() -> None:
         nonlocal line
         nonlocal column
 
         value_str: str = ""
+        cur_column: int = column
 
         while ptr < length and (
             src[ptr].isalnum() or src[ptr] == "_" or src[ptr] == "#"
@@ -132,7 +135,7 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
         elif value_str in instrument_configs_keywords:
             token_type = TokenType.INSTRUMENT_CONFIG
 
-        result.append(Token(token_type, value_str, line, column))
+        result.append(Token(token_type, value_str, line, cur_column))
 
     def next_char() -> None:
         nonlocal ptr

@@ -40,6 +40,8 @@ def repl() -> int:
 
         if line == "exit":
             return 0
+        elif len(line) == 0:
+            continue
 
         execute_code(line, "<stdin>")
 
@@ -54,6 +56,7 @@ def execute_file(path: str) -> int:
         print(
             f"Sonata: {Fore.RED}File not found{Fore.RESET}"
         )
+        return 1
 
 
 def main() -> int:
