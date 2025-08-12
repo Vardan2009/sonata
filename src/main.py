@@ -45,10 +45,15 @@ def repl() -> int:
 
 
 def execute_file(path: str) -> int:
-    with open(path, "r") as f:
-        content = f.read()
-        execute_code(content, os.path.basename(path))
-        return 0
+    try:
+        with open(path, "r") as f:
+            content = f.read()
+            execute_code(content, os.path.basename(path))
+            return 0
+    except FileNotFoundError:
+        print(
+            f"Sonata: {Fore.RED}File not found{Fore.RESET}"
+        )
 
 
 def main() -> int:
