@@ -6,7 +6,10 @@ from pyaudio import PyAudio, paFloat32
 
 
 def note_to_freq(note: str) -> float:
-    note = note.upper()
+    if note[0] == "_":
+        return 0
+    
+    note = note[0].upper() + note[1:]
 
     note_offsets = {
         "C": -9,
@@ -101,7 +104,7 @@ def play_note(note: "Note", actx: "AudioContext", num_in_parallel: int = 1):
     )
 
     envelope = np.empty(note_abs_length, dtype=np.float32)
-    
+
     pos = 0
     envelope[pos : pos + attack_samples] = np.linspace(
         0, 1, attack_samples, endpoint=False, dtype=np.float32
@@ -111,7 +114,7 @@ def play_note(note: "Note", actx: "AudioContext", num_in_parallel: int = 1):
     envelope[pos : pos + decay_samples] = np.linspace(
         1, adsr[2], decay_samples, endpoint=False, dtype=np.float32
     )
-    
+
     pos += decay_samples
     envelope[pos : pos + sustain_samples] = adsr[2]
 

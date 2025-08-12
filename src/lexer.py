@@ -119,7 +119,7 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
 
         value_str: str = ""
 
-        while ptr < length and src[ptr].isalnum():
+        while ptr < length and (src[ptr].isalnum() or src[ptr] == "_" or src[ptr] == "#"):
             value_str += src[ptr]
             next_char()
 
@@ -159,7 +159,7 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
             tokenize_string()
         elif char.isdigit():
             tokenize_number()
-        elif char.isalpha():
+        elif char.isalpha() or char == "_":
             tokenize_identifier()
         elif char.isspace():
             skip_whitespace()

@@ -245,7 +245,7 @@ class Parser:
                 return UseNode(config, command_token.line, command_token.column)
             case "repeat":
                 times: ASTNode = self.parse_expression()
-                root: ASTNode = self.parse_sequence()
+                root: ASTNode = self.parse_expression()
                 return RepeatNode(times, root, command_token.line, command_token.column)
             case "instrument":
                 return self.parse_instrument()

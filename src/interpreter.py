@@ -139,6 +139,21 @@ def visit_node(node: parser.ASTNode, ctx: InterpreterContext) -> Value:
                 instrument_node.column,
             )
 
+        case parser.RepeatNode:
+            sequence: SequenceValue = SequenceValue([], False)
+
+            repeat_node = cast(parser.RepeatNode, node)
+
+            times: int = int(visit_assert_type(repeat_node.times, float, ctx))
+
+            for _ in range(times):
+                val: Value = visit_node(repeat_node.root, ctx)
+
+                if type(val) is Note or type(val) is SequenceValue:
+                    sequence.notes.append(val)
+            
+            return sequence
+
         case _:
             raise SonataError(
                 SonataErrorType.INTERNAL_ERROR,
