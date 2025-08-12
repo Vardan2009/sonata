@@ -1,2 +1,5 @@
 ruff
 mypy
+numpy
+pyaudio
+colorama
