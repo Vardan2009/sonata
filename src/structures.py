@@ -89,14 +89,14 @@ class Instrument:
                     if not all(isinstance(x, (float, int)) for x in eval_values):
                         raise SonataError(
                             SonataErrorType.TYPE_ERROR,
-                            f"All adsr values must be numeric", ctx.file, node.line, node.column
+                            "All adsr values must be numeric", ctx.file, node.line, node.column
                         )
                     self.adsr = list(map(float, cast(List[float], eval_values)))
                 case "lowpass":
                     if (type(eval_values[0]) is not float) or (type(eval_values[1]) is not float) or len(eval_values) != 2:
                         raise SonataError(
                             SonataErrorType.TYPE_ERROR,
-                            f"lowpass syntax: <cutoff freq> <order>", ctx.file, node.line, node.column
+                            "lowpass syntax: <cutoff freq> <order>", ctx.file, node.line, node.column
                         )
 
                     self.lowpass_freq = eval_values[0]
@@ -105,7 +105,7 @@ class Instrument:
                     if (type(eval_values[0]) is not float) or (type(eval_values[1]) is not float) or len(eval_values) != 2:
                         raise SonataError(
                             SonataErrorType.TYPE_ERROR,
-                            f"highpass syntax: <cutoff freq> <order>", ctx.file, node.line, node.column
+                            "highpass syntax: <cutoff freq> <order>", ctx.file, node.line, node.column
                         )
 
                     self.highpass_freq = eval_values[0]
@@ -139,6 +139,9 @@ class AudioContext:
         self.mixdown: np.ndarray = np.array([], dtype=np.float32)
         self.mixdown_ptr: int = 0
 
+    def clear(self) -> None:
+        self.mixdown = np.array([], dtype=np.float32)
+        self.mixdown_ptr = 0
 
 class InterpreterContext:
     def get_symbol(self, symbol_name: str, line: int, column: int) -> Value:

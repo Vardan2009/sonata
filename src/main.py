@@ -1,9 +1,17 @@
 import traceback
-import sys
 import os
+import argparse
+import hashlib
+
+from typing import Union, Callable, Optional
 
 import colorama
 from colorama import Fore
+
+from pyaudio import PyAudio, paFloat32
+
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler, FileModifiedEvent, DirModifiedEvent
 
 import lexer
 import parser
@@ -13,8 +21,9 @@ import structures
 
 import error
 
+SONATA_VERSION: str = "0.3"
 
-def execute_code(src: str, filename: str) -> None:
+def execute_code(src: str, filename: str) -> Optional[structures.SequenceValue]:
     try:
         tokens = lexer.tokenize_source(filename, src)
         _parser = parser.Parser(filename, tokens)
@@ -22,18 +31,19 @@ def execute_code(src: str, filename: str) -> None:
         root: parser.ASTNode = _parser.parse()
 
         ctx = interpreter.InterpreterContext(filename, 60)
-        actx = synthesis.AudioContext()
 
         audio_tree: structures.SequenceValue = interpreter.visit_assert_type(
             root, structures.SequenceValue, ctx
         )
 
-        synthesis.play_result(audio_tree, actx)
+        return audio_tree
     except error.SonataError as e:
         e.print(src)
-
+        return None
 
 def repl() -> int:
+    actx: synthesis.AudioContext = synthesis.AudioContext()
+
     while True:
         print("Sonata % ", end="")
         line = input().strip()
@@ -43,35 +53,118 @@ def repl() -> int:
         elif len(line) == 0:
             continue
 
-        execute_code(line, "<stdin>")
+        audio_tree = execute_code(line, "<stdin>")
+        if audio_tree:
+            actx.clear()
+            synthesis.play_result(audio_tree, actx)
 
-
-def execute_file(path: str) -> int:
+def execute_file(path: str) -> Optional[structures.SequenceValue]:
     try:
         with open(path, "r") as f:
             content = f.read()
-            execute_code(content, os.path.basename(path))
-            return 0
+            audio_tree = execute_code(content, os.path.basename(path))
+            return audio_tree
     except FileNotFoundError:
         print(
             f"Sonata: {Fore.RED}File not found{Fore.RESET}"
         )
-        return 1
+        return None
 
+class LoopHandler(FileSystemEventHandler):
+    def __init__(self, filename: str, callback: Callable[[], None]) -> None:
+        self.filename: str = filename
+        self.callback: Callable[[], None] = callback
+        self.last_hash: str = ""
+        super().__init__()
+
+    def on_modified(self, event: Union[FileModifiedEvent, DirModifiedEvent]):
+        if event.is_directory or event.event_type != "modified" or event.src_path != self.filename:
+            return
+        
+        h = hashlib.md5()
+        with open(self.filename, 'rb') as f:
+            h.update(f.read())
+        hash: str = h.hexdigest()
+
+        if hash != self.last_hash:
+            print("ok")
+            self.callback()
+            self.last_hash = hash
+
+def loop_file(path: str) -> int:
+    directory, _ = os.path.split(path)
+
+    actx: synthesis.AudioContext = synthesis.AudioContext()
+
+    def change_handler():
+        audio_tree = execute_file(path)
+        
+        if audio_tree:
+            actx.clear()
+            audio_tree.mixdown(actx, 1)
+
+    observer = Observer()
+    observer.schedule(LoopHandler(path, change_handler), path=directory, recursive=False)
+    observer.start()
+    change_handler() # initial start
+
+    p = PyAudio()
+    stream = p.open(
+        format=paFloat32, channels=1, rate=actx.sample_rate, output=True
+    )
+
+    try:
+        while True:
+            stream.write(actx.mixdown.tobytes())
+    except KeyboardInterrupt:
+        observer.stop()
+    
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
+
+    observer.join()
+    return 0
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Block-based domain-specific language for structured music composition")
+
+    parser.add_argument(
+        '-v', '--version',
+        action='version',
+        version=f'Sonata version {SONATA_VERSION}',
+        help="show sonata version number and exit"
+    )
+
+    parser.add_argument(
+        'file',
+        nargs='?',
+        help="file to open (leave empty to start REPL)"
+    )
+
+    parser.add_argument(
+        '-l', '--loop',
+        action='store_true',
+        help="enable loop mode"
+    )
+
+    args = parser.parse_args()
     colorama.init()
 
-    if len(sys.argv) == 1:
-        return repl()
-    elif len(sys.argv) == 2:
-        return execute_file(sys.argv[1])
-    else:
-        print(
-            f"Sonata {Fore.GREEN}USAGE{Fore.RESET}: {Fore.BLUE}sonata{Fore.RESET} [filepath]"
-        )
-        return 0
+    if args.file:
+        if args.loop:
+            return loop_file(args.file)
+        
+        actx: synthesis.AudioContext = synthesis.AudioContext()
+        audio_tree: Optional[synthesis.SequenceValue] = execute_file(args.file)
 
+        if not audio_tree:
+            return 1
+
+        synthesis.play_result(audio_tree, actx)
+        return 0
+    else:
+        return repl()
 
 if __name__ == "__main__":
     try:
