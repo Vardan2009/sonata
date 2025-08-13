@@ -1,9 +1,20 @@
 from structures import Note, Instrument, AudioContext, SequenceValue
+from typing_extensions import Literal
 
 import numpy as np
 
 from pyaudio import PyAudio, paFloat32
 
+def pass_filter(data: np.ndarray, cutoff_freq: float, sample_rate: float, order: int, btype: Literal["low", "high"]) -> np.ndarray:
+    from scipy.signal import butter, filtfilt
+
+    nyquist = 0.5 * sample_rate
+    normal_cutoff = cutoff_freq / nyquist
+
+    b, a = butter(order, normal_cutoff, btype, analog=False)
+    filtered_data = filtfilt(b, a, data)
+
+    return filtered_data
 
 def note_to_freq(note: str) -> float:
     if note[0] == "_":
@@ -92,12 +103,13 @@ def play_note(note: "Note", actx: "AudioContext", num_in_parallel: int = 1):
     adsr = instrument.adsr
     wavefunc = WAVEFORMS[instrument.waveform]
 
-    attack_samples = int(adsr[0] * actx.sample_rate)
-    decay_samples = int(adsr[1] * actx.sample_rate)
-    release_samples = int(adsr[3] * actx.sample_rate)
-
     duration = note.duration * (60 / note.tempo)
+
+    release_samples = int(adsr[3] * actx.sample_rate)
     note_abs_length = int(duration * actx.sample_rate) + release_samples
+
+    attack_samples = min(int(adsr[0] * actx.sample_rate), note_abs_length - release_samples)
+    decay_samples = min(int(adsr[1] * actx.sample_rate), int(note_abs_length - release_samples - attack_samples))
 
     sustain_samples = max(
         note_abs_length - (attack_samples + decay_samples + release_samples), 0
@@ -120,7 +132,7 @@ def play_note(note: "Note", actx: "AudioContext", num_in_parallel: int = 1):
 
     pos += sustain_samples
     envelope[pos : pos + release_samples] = np.linspace(
-        adsr[2], 0, release_samples, endpoint=True, dtype=np.float32
+        1 if decay_samples == 0 else adsr[2], 0, release_samples, endpoint=True, dtype=np.float32
     )
 
     t = np.arange(note_abs_length, dtype=np.float32) * (
@@ -129,7 +141,13 @@ def play_note(note: "Note", actx: "AudioContext", num_in_parallel: int = 1):
 
     samples = wavefunc(t).astype(np.float32)
     samples *= envelope
-    samples *= 1.0 / num_in_parallel
+    samples *= (1.0 / (num_in_parallel + 1))
+
+    # if instrument.lowpass_freq and instrument.lowpass_order:
+    #     samples = pass_filter(samples, instrument.lowpass_freq, actx.sample_rate, instrument.lowpass_order, "low")
+
+    # if instrument.highpass_freq and instrument.highpass_order:
+    #     samples = pass_filter(samples, instrument.highpass_freq, actx.sample_rate, instrument.highpass_order, "high")
 
     needed_len = actx.mixdown_ptr + note_abs_length
     if needed_len > len(actx.mixdown):

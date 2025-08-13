@@ -1,0 +1,66 @@
+{
+    instrument piano (
+        adsr 0.01 0.2 0.7 0.3,
+        waveform "sine",
+        lowpass 4000 2
+    )
+
+    instrument electric_guitar (
+        adsr 0.005 0.15 0.6 0.25,
+        waveform "square",
+        lowpass 5000 1,
+        highpass 80 1
+    )
+
+    instrument violin (
+        adsr 0.3 0.4 0.8 0.5,
+        waveform "sawtooth",
+        lowpass 7000 2,
+        highpass 150 1
+    )
+
+    instrument flute (
+        adsr 0.05 0.1 0.9 0.2,
+        waveform "sine",
+        lowpass 6000 1,
+        highpass 200 1
+    )
+
+    instrument bass (
+        adsr 0.02 0.3 0.8 0.4,
+        waveform "triangle",
+        lowpass 800 2,
+        highpass 30 1
+    )
+
+    instrument synth_pad (
+        adsr 1.0 0.5 0.7 1.5,
+        waveform "reverse_sawtooth",
+        lowpass 3000 2,
+        highpass 100 1
+    )
+
+    tempo 120
+
+    bass = {
+        use bass
+
+        len = 3.25
+
+        A3:len G3:len F3:len E3:len
+    }
+
+    chord = [C4:0.5 E4:0.5 G4:0.5]
+
+    melody = {
+        use piano
+
+        chord
+        _:0.3
+        chord
+        _:0.1
+        chord
+    }
+
+    melody
+}

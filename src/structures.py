@@ -59,6 +59,13 @@ class Instrument:
         self.adsr: List[float] = [0.1, 0.0, 1.0, 0.1]
         self.waveform: str = "sine"
 
+        self.lowpass_freq: Optional[float] = None
+        self.lowpass_order: Optional[int] = None
+        
+        self.highpass_freq: Optional[float] = None
+        self.highpass_order: Optional[int] = None
+
+
         if not (node and ctx):
             return
 
@@ -73,14 +80,36 @@ class Instrument:
                 case "waveform":
                     val = eval_values[0]
                     if not isinstance(val, str):
-                        raise TypeError(
-                            f"waveform must be a string, got {type(val).__name__}"
+                        raise SonataError(
+                            SonataErrorType.TYPE_ERROR,
+                            f"waveform must be a string, got {type(val).__name__}", ctx.file, node.line, node.column
                         )
                     self.waveform = val
                 case "adsr":
                     if not all(isinstance(x, (float, int)) for x in eval_values):
-                        raise TypeError("adsr values must be numeric")
+                        raise SonataError(
+                            SonataErrorType.TYPE_ERROR,
+                            f"All adsr values must be numeric", ctx.file, node.line, node.column
+                        )
                     self.adsr = list(map(float, cast(List[float], eval_values)))
+                case "lowpass":
+                    if (type(eval_values[0]) is not float) or (type(eval_values[1]) is not float) or len(eval_values) != 2:
+                        raise SonataError(
+                            SonataErrorType.TYPE_ERROR,
+                            f"lowpass syntax: <cutoff freq> <order>", ctx.file, node.line, node.column
+                        )
+
+                    self.lowpass_freq = eval_values[0]
+                    self.lowpass_order = int(eval_values[1])
+                case "highpass":
+                    if (type(eval_values[0]) is not float) or (type(eval_values[1]) is not float) or len(eval_values) != 2:
+                        raise SonataError(
+                            SonataErrorType.TYPE_ERROR,
+                            f"highpass syntax: <cutoff freq> <order>", ctx.file, node.line, node.column
+                        )
+
+                    self.highpass_freq = eval_values[0]
+                    self.highpass_order = int(eval_values[1])
                 case _:
                     raise SonataError(
                         SonataErrorType.NAME_ERROR,

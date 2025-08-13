@@ -71,7 +71,7 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
     }
 
     all_keywords: List[str] = ["tempo", "define", "use", "repeat", "instrument"]
-    instrument_configs_keywords: List[str] = ["adsr", "waveform", "sample"]
+    instrument_configs_keywords: List[str] = ["adsr", "waveform", "sample", "lowpass", "highpass"]
 
     def tokenize_number() -> None:
         nonlocal line

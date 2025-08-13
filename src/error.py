@@ -9,6 +9,7 @@ class SonataErrorType(Enum):
     INTERNAL_ERROR = 1
     SYNTAX_ERROR = 2
     NAME_ERROR = 3
+    TYPE_ERROR = 4
 
 
 class SonataError(Exception):
