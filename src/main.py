@@ -87,7 +87,7 @@ class LoopHandler(FileSystemEventHandler):
         hash: str = h.hexdigest()
 
         if hash != self.last_hash:
-            print("ok")
+            print(f"{Fore.GREEN}File change detected!{Fore.RESET}")
             self.callback()
             self.last_hash = hash
 
@@ -102,10 +102,14 @@ def loop_file(path: str) -> int:
         if audio_tree:
             actx.clear()
             audio_tree.mixdown(actx, 1)
+            print("File changes applied!")
 
     observer = Observer()
     observer.schedule(LoopHandler(path, change_handler), path=directory, recursive=False)
     observer.start()
+
+    print(f"Started listening to file changes to {path}...")
+
     change_handler() # initial start
 
     p = PyAudio()
