@@ -139,6 +139,11 @@ class RepeatNode(ASTNode):
         self.times.pretty_print(indent + 1)
         self.root.pretty_print(indent + 1)
 
+class DefineNode(ASTNode):
+    def __init__(self, alias: str, root: ASTNode, line: int, column: int):
+        self.alias:str = alias
+        self.root:ASTNode = root
+        super().__init__(line, column)
 
 class Parser:
     precedence: Dict[lexer.TokenType, int] = {
@@ -249,6 +254,10 @@ class Parser:
                 return RepeatNode(times, root, command_token.line, command_token.column)
             case "instrument":
                 return self.parse_instrument()
+            case "define":
+                alias: str = cast(str, self.expect(lexer.TokenType.IDENTIFIER).value)
+                root: ASTNode = self.parse_expression()
+                return DefineNode(alias, root, command_token.line, command_token.column)
             case _:
                 raise error.SonataError(
                     error.SonataErrorType.SYNTAX_ERROR,

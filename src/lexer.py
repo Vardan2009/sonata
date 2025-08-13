@@ -70,7 +70,7 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
         ":": TokenType.COLON,
     }
 
-    all_keywords: List[str] = ["tempo", "define", "use", "repeat", "instrument"]
+    all_keywords: List[str] = ["tempo", "define", "use", "repeat", "instrument", "define"]
     instrument_configs_keywords: List[str] = ["adsr", "waveform", "sample", "lowpass", "highpass"]
 
     def tokenize_number() -> None:

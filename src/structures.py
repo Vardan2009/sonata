@@ -1,5 +1,5 @@
 from typing import Optional, Dict, List, TypeAlias, Union, cast
-from parser import InstrumentNode
+from parser import InstrumentNode, ASTNode
 
 from error import SonataError, SonataErrorType
 
@@ -47,7 +47,7 @@ class SequenceValue:
             actx.mixdown_ptr = max_mixdown_ptr
 
 
-Value: TypeAlias = Optional[Union[int, float, str, Note, SequenceValue]]
+Value: TypeAlias = Optional[Union[int, float, str, Note, SequenceValue, ASTNode]]
 
 
 class Instrument:

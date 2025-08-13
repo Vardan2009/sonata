@@ -44,9 +44,14 @@ def visit_node(node: parser.ASTNode, ctx: InterpreterContext) -> Value:
             return cast(parser.StringNode, node).value
 
         case parser.SymbolNode:
-            return ctx.get_symbol(
+            sym = ctx.get_symbol(
                 cast(parser.SymbolNode, node).symbol, node.line, node.column
             )
+
+            if isinstance(sym, parser.ASTNode):
+                return visit_node(sym, ctx)
+
+            return sym
 
         case parser.NoteNode:
             note_node = cast(parser.NoteNode, node)
@@ -153,6 +158,11 @@ def visit_node(node: parser.ASTNode, ctx: InterpreterContext) -> Value:
                     sequence.notes.append(val)
 
             return sequence
+        
+        case parser.DefineNode:
+            define_node: parser.DefineNode = cast(parser.DefineNode, node)
+
+            ctx.set_symbol(define_node.alias, define_node.root, define_node.line, define_node.column)
 
         case _:
             raise SonataError(
