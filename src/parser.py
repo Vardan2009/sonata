@@ -195,6 +195,8 @@ class Parser:
         return self.advance()
 
     def parse(self) -> ASTNode:
+        if len(self.tokens) == 0:
+            return SequenceNode(False, [], 0, 0)
         return self.parse_sequence()
 
     def parse_sequence(self) -> ASTNode:

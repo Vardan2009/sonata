@@ -2,6 +2,7 @@ import traceback
 import os
 import argparse
 import hashlib
+import time
 
 from typing import Union, Callable, Optional
 
@@ -126,7 +127,11 @@ def loop_file(path: str) -> int:
 
     try:
         while True:
-            stream.write(actx.mixdown.tobytes())
+            if len(actx.mixdown) > 0:
+                stream.write(actx.mixdown.tobytes())
+            else:
+                time.sleep(1)
+
     except KeyboardInterrupt:
         observer.stop()
 
