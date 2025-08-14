@@ -109,8 +109,12 @@ def loop_file(path: str) -> int:
 
         if audio_tree:
             actx.clear()
-            audio_tree.mixdown(actx, 1)
-            print("File changes applied!")
+            try:
+                audio_tree.mixdown(actx, 1)
+                print("File changes applied!")
+            except Exception as e:
+                error.SonataError(error.SonataErrorType.INTERNAL_ERROR, str(e)).print("")
+                traceback.print_exc()
 
     observer = Observer()
     observer.schedule(
@@ -128,7 +132,10 @@ def loop_file(path: str) -> int:
     try:
         while True:
             if len(actx.mixdown) > 0:
-                stream.write(actx.mixdown.tobytes())
+                data = actx.mixdown.tobytes()
+                chunk_size: int = 1024
+                for i in range(0, len(data), chunk_size):
+                    stream.write(data[i:i+chunk_size])
             else:
                 time.sleep(1)
 

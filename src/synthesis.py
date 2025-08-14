@@ -73,7 +73,10 @@ def play_result(root: SequenceValue, actx: AudioContext):
             format=paFloat32, channels=1, rate=actx.sample_rate, output=True
         )
 
-        stream.write(actx.mixdown.tobytes())
+        data = actx.mixdown.tobytes()
+        chunk_size: int = 1024
+        for i in range(0, len(data), chunk_size):
+            stream.write(data[i:i+chunk_size])
 
         stream.stop_stream()
         stream.close()
