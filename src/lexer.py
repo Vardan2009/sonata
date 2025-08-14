@@ -77,7 +77,9 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
         "repeat",
         "instrument",
         "define",
+        "volume",
     ]
+
     instrument_configs_keywords: List[str] = [
         "adsr",
         "waveform",

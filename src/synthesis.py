@@ -8,9 +8,18 @@ from pyaudio import PyAudio, paFloat32
 
 from scipy.signal import butter, filtfilt
 
-filter_cache: Dict[Tuple[float, int, Literal["low", "high"]], Tuple[np.ndarray, np.ndarray]] = {}
+filter_cache: Dict[
+    Tuple[float, int, Literal["low", "high"]], Tuple[np.ndarray, np.ndarray]
+] = {}
 
-def pass_filter(data: np.ndarray, cutoff_freq: float, sample_rate: float, order: int, btype: Literal["low", "high"]) -> np.ndarray:
+
+def pass_filter(
+    data: np.ndarray,
+    cutoff_freq: float,
+    sample_rate: float,
+    order: int,
+    btype: Literal["low", "high"],
+) -> np.ndarray:
     key = (cutoff_freq, order, btype)
     if key not in filter_cache:
         nyquist = 0.5 * sample_rate
@@ -19,12 +28,14 @@ def pass_filter(data: np.ndarray, cutoff_freq: float, sample_rate: float, order:
     b, a = filter_cache[key]
     return filtfilt(b, a, data)
 
+
 note_freq_cache: Dict[str, float] = {}
+
 
 def note_to_freq(note: str) -> float:
     if note[0] == "_":
         return 0
-    
+
     if note in note_freq_cache:
         return note_freq_cache[note]
 
@@ -63,6 +74,7 @@ def note_to_freq(note: str) -> float:
     note_freq_cache[note] = freq
     return freq
 
+
 def play_result(root: SequenceValue, actx: AudioContext):
     root.mixdown(actx, 1)
 
@@ -76,7 +88,7 @@ def play_result(root: SequenceValue, actx: AudioContext):
         data = actx.mixdown.tobytes()
         chunk_size: int = 1024
         for i in range(0, len(data), chunk_size):
-            stream.write(data[i:i+chunk_size])
+            stream.write(data[i : i + chunk_size])
 
         stream.stop_stream()
         stream.close()
@@ -87,11 +99,14 @@ def play_result(root: SequenceValue, actx: AudioContext):
 def square_wave(x: np.ndarray) -> np.ndarray:
     return np.sign(np.sin(x)).astype(np.float32)
 
+
 def triangle_wave(x: np.ndarray) -> np.ndarray:
     return (2 / np.pi * np.arcsin(np.sin(x))).astype(np.float32)
 
+
 def sawtooth_wave(x: np.ndarray) -> np.ndarray:
     return (2 * (x / (2 * np.pi) - np.floor(x / (2 * np.pi) + 0.5))).astype(np.float32)
+
 
 def reverse_sawtooth_wave(x: np.ndarray) -> np.ndarray:
     return (-2 * (x / (2 * np.pi) - np.floor(x / (2 * np.pi) + 0.5))).astype(np.float32)
@@ -105,7 +120,11 @@ WAVEFORMS: Dict[str, Callable[[np.ndarray], np.ndarray]] = {
     "reverse_sawtooth": reverse_sawtooth_wave,
 }
 
-envelopes_cache: Dict[Tuple[Tuple[float, float, float, float], float], Tuple[np.ndarray, int, int, int, int]] = {}
+envelopes_cache: Dict[
+    Tuple[Tuple[float, float, float, float], float],
+    Tuple[np.ndarray, int, int, int, int],
+] = {}
+
 
 def get_envelope(adsr: tuple[float, float, float, float], duration: float, sr: int):
     key = (adsr, duration)
@@ -125,17 +144,21 @@ def get_envelope(adsr: tuple[float, float, float, float], duration: float, sr: i
 
     pos = 0
     if a_s:
-        env[pos:pos+a_s] = np.arange(a_s, dtype=np.float32) / a_s
+        env[pos : pos + a_s] = np.arange(a_s, dtype=np.float32) / a_s
         pos += a_s
     if d_s:
-        env[pos:pos+d_s] = 1 - (1 - adsr[2]) * (np.arange(d_s, dtype=np.float32) / d_s)
+        env[pos : pos + d_s] = 1 - (1 - adsr[2]) * (
+            np.arange(d_s, dtype=np.float32) / d_s
+        )
         pos += d_s
     if s_s:
-        env[pos:pos+s_s] = adsr[2]
+        env[pos : pos + s_s] = adsr[2]
         pos += s_s
     if r_s:
         start_val = 1.0 if d_s == 0 else adsr[2]
-        env[pos:pos+r_s] = start_val * (1 - np.arange(r_s, dtype=np.float32) / (r_s - 1 if r_s > 1 else 1))
+        env[pos : pos + r_s] = start_val * (
+            1 - np.arange(r_s, dtype=np.float32) / (r_s - 1 if r_s > 1 else 1)
+        )
 
     result = (env, a_s, d_s, r_s, total_len)
     envelopes_cache[key] = result
@@ -144,11 +167,13 @@ def get_envelope(adsr: tuple[float, float, float, float], duration: float, sr: i
 
 t_cache: Dict[Tuple[float, float], np.ndarray] = {}
 
+
 def get_t(length: float, freq: float, sr: float) -> np.ndarray:
     key = (length, freq)
     if key not in t_cache:
         t_cache[key] = np.arange(length, dtype=np.float32) * (2 * np.pi * freq / sr)
     return t_cache[key]
+
 
 def play_note(note: "Note", actx: AudioContext, num_in_parallel: int = 1):
     instrument: Instrument = note.instrument
@@ -157,24 +182,38 @@ def play_note(note: "Note", actx: AudioContext, num_in_parallel: int = 1):
 
     duration = note.duration * (60 / note.tempo)
 
-    (envelope, _, _, release_samples, note_abs_length) = get_envelope(adsr, duration, actx.sample_rate)
+    (envelope, _, _, release_samples, note_abs_length) = get_envelope(
+        adsr, duration, actx.sample_rate
+    )
 
     t = get_t(note_abs_length, note_to_freq(note.note), actx.sample_rate)
 
     samples = wavefunc(t)
-    samples *= envelope
-    samples *= (1.0 / (num_in_parallel + 1))
+    samples *= envelope * note.volume
+    samples *= 1.0 / (num_in_parallel + 1)
 
     if instrument.lowpass_freq and instrument.lowpass_order:
-        samples = pass_filter(samples, instrument.lowpass_freq, actx.sample_rate, instrument.lowpass_order, "low")
+        samples = pass_filter(
+            samples,
+            instrument.lowpass_freq,
+            actx.sample_rate,
+            instrument.lowpass_order,
+            "low",
+        )
 
     if instrument.highpass_freq and instrument.highpass_order:
-        samples = pass_filter(samples, instrument.highpass_freq, actx.sample_rate, instrument.highpass_order, "high")
+        samples = pass_filter(
+            samples,
+            instrument.highpass_freq,
+            actx.sample_rate,
+            instrument.highpass_order,
+            "high",
+        )
 
     needed_len = actx.mixdown_ptr + note_abs_length
     if needed_len > len(actx.mixdown):
         tmp = np.zeros(needed_len, dtype=np.float32)
-        tmp[:len(actx.mixdown)] = actx.mixdown
+        tmp[: len(actx.mixdown)] = actx.mixdown
         actx.mixdown = tmp
 
     actx.mixdown[actx.mixdown_ptr : actx.mixdown_ptr + note_abs_length] += samples

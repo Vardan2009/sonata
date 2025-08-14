@@ -169,6 +169,10 @@ def visit_node(node: parser.ASTNode, ctx: InterpreterContext) -> Value:
                 define_node.column,
             )
 
+        case parser.VolumeNode:
+            volume_node: parser.VolumeNode = cast(parser.VolumeNode, node)
+            ctx.set_volume(visit_assert_type(volume_node.volume, float, ctx))
+
         case _:
             raise SonataError(
                 SonataErrorType.INTERNAL_ERROR,

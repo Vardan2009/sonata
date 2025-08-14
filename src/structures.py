@@ -12,6 +12,7 @@ class Note:
         self.duration: float = duration
         self.instrument: Instrument = ictx.get_instrument()
         self.tempo: float = ictx.get_tempo()
+        self.volume: float = ictx.get_volume()
 
     def __str__(self) -> str:
         return f"{self.note}:{self.duration}"
@@ -160,6 +161,7 @@ class Scope:
         self.instrument: Optional[Instrument] = None
         self.symbols: Dict[str, Value] = symbols
         self.defined_instruments: Dict[str, Instrument] = {}
+        self.volume: Optional[float] = None
 
 
 class AudioContext:
@@ -222,9 +224,18 @@ class InterpreterContext:
 
     def get_tempo(self) -> float:
         for scope in reversed(self.scope_stack):
-            if scope.tempo:
+            if scope.tempo is not None:
                 return scope.tempo
         return 0
+
+    def set_volume(self, new_volume: float):
+        self.scope_stack[-1].volume = new_volume
+
+    def get_volume(self) -> float:
+        for scope in reversed(self.scope_stack):
+            if scope.volume is not None:
+                return scope.volume
+        return 1
 
     def set_instrument(self, new_instrument: Instrument):
         self.scope_stack[-1].instrument = new_instrument

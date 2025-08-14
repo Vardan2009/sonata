@@ -147,6 +147,12 @@ class DefineNode(ASTNode):
         super().__init__(line, column)
 
 
+class VolumeNode(ASTNode):
+    def __init__(self, volume: ASTNode, line: int, column: int):
+        self.volume: ASTNode = volume
+        super().__init__(line, column)
+
+
 class Parser:
     precedence: Dict[lexer.TokenType, int] = {
         lexer.TokenType.PLUS: 1,
@@ -262,6 +268,9 @@ class Parser:
                 alias: str = cast(str, self.expect(lexer.TokenType.IDENTIFIER).value)
                 root: ASTNode = self.parse_expression()
                 return DefineNode(alias, root, command_token.line, command_token.column)
+            case "volume":
+                value: ASTNode = self.parse_expression()
+                return VolumeNode(value, command_token.line, command_token.column)
             case _:
                 raise error.SonataError(
                     error.SonataErrorType.SYNTAX_ERROR,
