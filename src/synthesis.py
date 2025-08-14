@@ -173,8 +173,7 @@ def play_note(note: "Note", actx: AudioContext, num_in_parallel: int = 1):
 
     needed_len = actx.mixdown_ptr + note_abs_length
     if needed_len > len(actx.mixdown):
-        new_len = max(needed_len, len(actx.mixdown) * 2)
-        tmp = np.zeros(new_len, dtype=np.float32)
+        tmp = np.zeros(needed_len, dtype=np.float32)
         tmp[:len(actx.mixdown)] = actx.mixdown
         actx.mixdown = tmp
 
