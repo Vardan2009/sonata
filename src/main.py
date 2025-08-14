@@ -23,6 +23,7 @@ import error
 
 SONATA_VERSION: str = "0.3"
 
+
 def execute_code(src: str, filename: str) -> Optional[structures.SequenceValue]:
     try:
         tokens = lexer.tokenize_source(filename, src)
@@ -41,6 +42,7 @@ def execute_code(src: str, filename: str) -> Optional[structures.SequenceValue]:
         e.print(src)
         return None
 
+
 def repl() -> int:
     actx: synthesis.AudioContext = synthesis.AudioContext()
 
@@ -58,6 +60,7 @@ def repl() -> int:
             actx.clear()
             synthesis.play_result(audio_tree, actx)
 
+
 def execute_file(path: str) -> Optional[structures.SequenceValue]:
     try:
         with open(path, "r") as f:
@@ -65,10 +68,9 @@ def execute_file(path: str) -> Optional[structures.SequenceValue]:
             audio_tree = execute_code(content, os.path.basename(path))
             return audio_tree
     except FileNotFoundError:
-        print(
-            f"Sonata: {Fore.RED}File not found{Fore.RESET}"
-        )
+        print(f"Sonata: {Fore.RED}File not found{Fore.RESET}")
         return None
+
 
 class LoopHandler(FileSystemEventHandler):
     def __init__(self, filename: str, callback: Callable[[], None]) -> None:
@@ -78,11 +80,15 @@ class LoopHandler(FileSystemEventHandler):
         super().__init__()
 
     def on_modified(self, event: Union[FileModifiedEvent, DirModifiedEvent]):
-        if event.is_directory or event.event_type != "modified" or event.src_path != self.filename:
+        if (
+            event.is_directory
+            or event.event_type != "modified"
+            or event.src_path != self.filename
+        ):
             return
-        
+
         h = hashlib.md5()
-        with open(self.filename, 'rb') as f:
+        with open(self.filename, "rb") as f:
             h.update(f.read())
         hash: str = h.hexdigest()
 
@@ -91,6 +97,7 @@ class LoopHandler(FileSystemEventHandler):
             self.callback()
             self.last_hash = hash
 
+
 def loop_file(path: str) -> int:
     directory, _ = os.path.split(path)
 
@@ -98,31 +105,31 @@ def loop_file(path: str) -> int:
 
     def change_handler():
         audio_tree = execute_file(path)
-        
+
         if audio_tree:
             actx.clear()
             audio_tree.mixdown(actx, 1)
             print("File changes applied!")
 
     observer = Observer()
-    observer.schedule(LoopHandler(path, change_handler), path=directory, recursive=False)
+    observer.schedule(
+        LoopHandler(path, change_handler), path=directory, recursive=False
+    )
     observer.start()
 
     print(f"Started listening to file changes to {path}...")
 
-    change_handler() # initial start
+    change_handler()  # initial start
 
     p = PyAudio()
-    stream = p.open(
-        format=paFloat32, channels=1, rate=actx.sample_rate, output=True
-    )
+    stream = p.open(format=paFloat32, channels=1, rate=actx.sample_rate, output=True)
 
     try:
         while True:
             stream.write(actx.mixdown.tobytes())
     except KeyboardInterrupt:
         observer.stop()
-    
+
     stream.stop_stream()
     stream.close()
     p.terminate()
@@ -130,27 +137,25 @@ def loop_file(path: str) -> int:
     observer.join()
     return 0
 
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Block-based domain-specific language for structured music composition")
-
-    parser.add_argument(
-        '-v', '--version',
-        action='version',
-        version=f'Sonata version {SONATA_VERSION}',
-        help="show sonata version number and exit"
+    parser = argparse.ArgumentParser(
+        description="Block-based domain-specific language for structured music composition"
     )
 
     parser.add_argument(
-        'file',
-        nargs='?',
-        help="file to open (leave empty to start REPL)"
+        "-v",
+        "--version",
+        action="version",
+        version=f"Sonata version {SONATA_VERSION}",
+        help="show sonata version number and exit",
     )
 
     parser.add_argument(
-        '-l', '--loop',
-        action='store_true',
-        help="enable loop mode"
+        "file", nargs="?", help="file to open (leave empty to start REPL)"
     )
+
+    parser.add_argument("-l", "--loop", action="store_true", help="enable loop mode")
 
     args = parser.parse_args()
     colorama.init()
@@ -158,7 +163,7 @@ def main() -> int:
     if args.file:
         if args.loop:
             return loop_file(args.file)
-        
+
         actx: synthesis.AudioContext = synthesis.AudioContext()
         audio_tree: Optional[synthesis.SequenceValue] = execute_file(args.file)
 
@@ -169,6 +174,7 @@ def main() -> int:
         return 0
     else:
         return repl()
+
 
 if __name__ == "__main__":
     try:

@@ -70,8 +70,21 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
         ":": TokenType.COLON,
     }
 
-    all_keywords: List[str] = ["tempo", "define", "use", "repeat", "instrument", "define"]
-    instrument_configs_keywords: List[str] = ["adsr", "waveform", "sample", "lowpass", "highpass"]
+    all_keywords: List[str] = [
+        "tempo",
+        "define",
+        "use",
+        "repeat",
+        "instrument",
+        "define",
+    ]
+    instrument_configs_keywords: List[str] = [
+        "adsr",
+        "waveform",
+        "sample",
+        "lowpass",
+        "highpass",
+    ]
 
     def tokenize_number() -> None:
         nonlocal line
@@ -103,7 +116,6 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
 
         value_str: str = ""
         cur_column: int = column
-
 
         next_char()
 
@@ -150,9 +162,9 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
         nonlocal column
 
         next_char()
-        while ptr < length and src[ptr] != '\n':
+        while ptr < length and src[ptr] != "\n":
             next_char()
-        
+
         next_char()
         line += 1
         column = 0
@@ -179,7 +191,7 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
             tokenize_number()
         elif char.isalpha() or char == "_":
             tokenize_identifier()
-        elif char == '#':
+        elif char == "#":
             skip_comment()
         elif char.isspace():
             skip_whitespace()

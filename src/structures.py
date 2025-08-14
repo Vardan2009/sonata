@@ -56,15 +56,14 @@ class Instrument:
         node: Optional["InstrumentNode"] = None,
         ctx: Optional["InterpreterContext"] = None,
     ):
-        self.adsr: List[float] = [0.1, 0.0, 1.0, 0.1]
+        self.adsr: tuple[float, float, float, float] = (0.1, 0.0, 1.0, 0.1)
         self.waveform: str = "sine"
 
         self.lowpass_freq: Optional[float] = None
         self.lowpass_order: Optional[int] = None
-        
+
         self.highpass_freq: Optional[float] = None
         self.highpass_order: Optional[int] = None
-
 
         if not (node and ctx):
             return
@@ -82,30 +81,61 @@ class Instrument:
                     if not isinstance(val, str):
                         raise SonataError(
                             SonataErrorType.TYPE_ERROR,
-                            f"waveform must be a string, got {type(val).__name__}", ctx.file, node.line, node.column
+                            f"waveform must be a string, got {type(val).__name__}",
+                            ctx.file,
+                            node.line,
+                            node.column,
                         )
                     self.waveform = val
                 case "adsr":
                     if not all(isinstance(x, (float, int)) for x in eval_values):
                         raise SonataError(
                             SonataErrorType.TYPE_ERROR,
-                            "All adsr values must be numeric", ctx.file, node.line, node.column
+                            "All adsr values must be numeric",
+                            ctx.file,
+                            node.line,
+                            node.column,
                         )
-                    self.adsr = list(map(float, cast(List[float], eval_values)))
-                case "lowpass":
-                    if (type(eval_values[0]) is not float) or (type(eval_values[1]) is not float) or len(eval_values) != 2:
+                    if len(eval_values) != 4:
                         raise SonataError(
                             SonataErrorType.TYPE_ERROR,
-                            "lowpass syntax: <cutoff freq> <order>", ctx.file, node.line, node.column
+                            "adsr requires 4 values only",
+                            ctx.file,
+                            node.line,
+                            node.column,
+                        )
+                    self.adsr = cast(
+                        tuple[float, float, float, float],
+                        tuple(map(float, cast(List[float], eval_values))),
+                    )
+                case "lowpass":
+                    if (
+                        (type(eval_values[0]) is not float)
+                        or (type(eval_values[1]) is not float)
+                        or len(eval_values) != 2
+                    ):
+                        raise SonataError(
+                            SonataErrorType.TYPE_ERROR,
+                            "lowpass syntax: <cutoff freq> <order>",
+                            ctx.file,
+                            node.line,
+                            node.column,
                         )
 
                     self.lowpass_freq = eval_values[0]
                     self.lowpass_order = int(eval_values[1])
                 case "highpass":
-                    if (type(eval_values[0]) is not float) or (type(eval_values[1]) is not float) or len(eval_values) != 2:
+                    if (
+                        (type(eval_values[0]) is not float)
+                        or (type(eval_values[1]) is not float)
+                        or len(eval_values) != 2
+                    ):
                         raise SonataError(
                             SonataErrorType.TYPE_ERROR,
-                            "highpass syntax: <cutoff freq> <order>", ctx.file, node.line, node.column
+                            "highpass syntax: <cutoff freq> <order>",
+                            ctx.file,
+                            node.line,
+                            node.column,
                         )
 
                     self.highpass_freq = eval_values[0]
@@ -142,6 +172,7 @@ class AudioContext:
     def clear(self) -> None:
         self.mixdown = np.array([], dtype=np.float32)
         self.mixdown_ptr = 0
+
 
 class InterpreterContext:
     def get_symbol(self, symbol_name: str, line: int, column: int) -> Value:

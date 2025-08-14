@@ -139,11 +139,13 @@ class RepeatNode(ASTNode):
         self.times.pretty_print(indent + 1)
         self.root.pretty_print(indent + 1)
 
+
 class DefineNode(ASTNode):
     def __init__(self, alias: str, root: ASTNode, line: int, column: int):
-        self.alias:str = alias
-        self.root:ASTNode = root
+        self.alias: str = alias
+        self.root: ASTNode = root
         super().__init__(line, column)
+
 
 class Parser:
     precedence: Dict[lexer.TokenType, int] = {

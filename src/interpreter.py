@@ -158,11 +158,16 @@ def visit_node(node: parser.ASTNode, ctx: InterpreterContext) -> Value:
                     sequence.notes.append(val)
 
             return sequence
-        
+
         case parser.DefineNode:
             define_node: parser.DefineNode = cast(parser.DefineNode, node)
 
-            ctx.set_symbol(define_node.alias, define_node.root, define_node.line, define_node.column)
+            ctx.set_symbol(
+                define_node.alias,
+                define_node.root,
+                define_node.line,
+                define_node.column,
+            )
 
         case _:
             raise SonataError(

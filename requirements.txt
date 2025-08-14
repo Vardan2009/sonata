@@ -3,3 +3,4 @@ mypy
 numpy
 pyaudio
 colorama
+watchdog
