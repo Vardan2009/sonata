@@ -168,11 +168,11 @@ class Scope:
 
 class AudioContext:
     def __init__(self) -> None:
-        self.mixdown: np.ndarray = np.zeros((2, ), dtype=np.float32)
+        self.mixdown: np.ndarray = np.zeros((2,), dtype=np.float32)
         self.mixdown_ptr: int = 0
 
     def clear(self) -> None:
-        self.mixdown = np.zeros((2, ), dtype=np.float32)
+        self.mixdown = np.zeros((2,), dtype=np.float32)
         self.mixdown_ptr = 0
 
 
@@ -236,7 +236,7 @@ class InterpreterContext:
             if scope.volume is not None:
                 return scope.volume
         return 1
-    
+
     def set_pan(self, new_pan: float):
         self.scope_stack[-1].pan = new_pan
 

@@ -131,7 +131,12 @@ def loop_file(path: str) -> int:
     change_handler()  # initial start
 
     p = PyAudio()
-    stream = p.open(format=config.SAMPLE_TYPE, channels=config.CHANNELS, rate=config.SAMPLE_RATE, output=True)
+    stream = p.open(
+        format=config.SAMPLE_TYPE,
+        channels=config.CHANNELS,
+        rate=config.SAMPLE_RATE,
+        output=True,
+    )
 
     try:
         while True:

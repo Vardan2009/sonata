@@ -151,6 +151,7 @@ class DefineNode(ASTNode):
         print(f"Define {self.alias}")
         self.root.pretty_print(indent + 1)
 
+
 class VolumeNode(ASTNode):
     def __init__(self, volume: ASTNode, line: int, column: int):
         self.volume: ASTNode = volume
@@ -161,15 +162,17 @@ class VolumeNode(ASTNode):
         print("Volume")
         self.volume.pretty_print(indent + 1)
 
+
 class PanNode(ASTNode):
     def __init__(self, pan: ASTNode, line: int, column: int):
         self.pan: ASTNode = pan
         super().__init__(line, column)
-    
+
     def pretty_print(self, indent: int = 0) -> None:
         super().pretty_print(indent)
         print("Pan")
         self.pan.pretty_print(indent + 1)
+
 
 class Parser:
     precedence: Dict[lexer.TokenType, int] = {

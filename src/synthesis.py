@@ -82,7 +82,12 @@ def play_result(root: SequenceValue, actx: AudioContext):
     if len(actx.mixdown) != 0:
         p = PyAudio()
 
-        stream = p.open(format=config.SAMPLE_TYPE, channels=config.CHANNELS, rate=config.SAMPLE_RATE, output=True)
+        stream = p.open(
+            format=config.SAMPLE_TYPE,
+            channels=config.CHANNELS,
+            rate=config.SAMPLE_RATE,
+            output=True,
+        )
 
         data = actx.mixdown.tobytes()
         chunk_size: int = 1024
@@ -219,5 +224,7 @@ def play_note(note: "Note", actx: AudioContext, num_in_parallel: int = 1):
         tmp[: len(actx.mixdown), :] = actx.mixdown
         actx.mixdown = tmp
 
-    actx.mixdown[actx.mixdown_ptr : actx.mixdown_ptr + note_abs_length, :] += stereo_samples
+    actx.mixdown[actx.mixdown_ptr : actx.mixdown_ptr + note_abs_length, :] += (
+        stereo_samples
+    )
     actx.mixdown_ptr += note_abs_length - release_samples
