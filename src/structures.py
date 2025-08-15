@@ -168,13 +168,11 @@ class Scope:
 
 class AudioContext:
     def __init__(self) -> None:
-        self.sample_rate: int = 44100
-
         self.mixdown: np.ndarray = np.zeros((2, ), dtype=np.float32)
         self.mixdown_ptr: int = 0
 
     def clear(self) -> None:
-        self.mixdown = np.array([], dtype=np.float32)
+        self.mixdown = np.zeros((2, ), dtype=np.float32)
         self.mixdown_ptr = 0
 
 

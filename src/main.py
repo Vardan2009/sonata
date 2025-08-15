@@ -9,7 +9,7 @@ from typing import Union, Callable, Optional
 import colorama
 from colorama import Fore
 
-from pyaudio import PyAudio, paFloat32
+from pyaudio import PyAudio
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileModifiedEvent, DirModifiedEvent
@@ -21,6 +21,8 @@ import synthesis
 import structures
 
 import error
+
+import config
 
 SONATA_VERSION: str = "0.3"
 
@@ -129,7 +131,7 @@ def loop_file(path: str) -> int:
     change_handler()  # initial start
 
     p = PyAudio()
-    stream = p.open(format=paFloat32, channels=1, rate=actx.sample_rate, output=True)
+    stream = p.open(format=config.SAMPLE_TYPE, channels=config.CHANNELS, rate=config.SAMPLE_RATE, output=True)
 
     try:
         while True:

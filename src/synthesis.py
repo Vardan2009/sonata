@@ -4,7 +4,8 @@ from typing import Tuple, Dict, Callable
 
 import numpy as np
 
-from pyaudio import PyAudio, paFloat32
+import config
+from pyaudio import PyAudio
 
 from scipy.signal import butter, filtfilt
 
@@ -81,9 +82,7 @@ def play_result(root: SequenceValue, actx: AudioContext):
     if len(actx.mixdown) != 0:
         p = PyAudio()
 
-        stream = p.open(
-            format=paFloat32, channels=2, rate=actx.sample_rate, output=True
-        )
+        stream = p.open(format=config.SAMPLE_TYPE, channels=config.CHANNELS, rate=config.SAMPLE_RATE, output=True)
 
         data = actx.mixdown.tobytes()
         chunk_size: int = 1024
@@ -183,10 +182,10 @@ def play_note(note: "Note", actx: AudioContext, num_in_parallel: int = 1):
     duration = note.duration * (60 / note.tempo)
 
     (envelope, _, _, release_samples, note_abs_length) = get_envelope(
-        adsr, duration, actx.sample_rate
+        adsr, duration, config.SAMPLE_RATE
     )
 
-    t = get_t(note_abs_length, note_to_freq(note.note), actx.sample_rate)
+    t = get_t(note_abs_length, note_to_freq(note.note), config.SAMPLE_RATE)
 
     samples = wavefunc(t)
     samples *= envelope * note.volume * 0.7
@@ -196,7 +195,7 @@ def play_note(note: "Note", actx: AudioContext, num_in_parallel: int = 1):
         samples = pass_filter(
             samples,
             instrument.lowpass_freq,
-            actx.sample_rate,
+            config.SAMPLE_RATE,
             instrument.lowpass_order,
             "low",
         )
@@ -205,7 +204,7 @@ def play_note(note: "Note", actx: AudioContext, num_in_parallel: int = 1):
         samples = pass_filter(
             samples,
             instrument.highpass_freq,
-            actx.sample_rate,
+            config.SAMPLE_RATE,
             instrument.highpass_order,
             "high",
         )
