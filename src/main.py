@@ -61,7 +61,7 @@ def repl() -> int:
         audio_tree = execute_code(line, "<stdin>")
         if audio_tree:
             actx.clear()
-            synthesis.play_result(audio_tree, actx)
+            synthesis.play_result(audio_tree, actx, None)
 
 
 def execute_file(path: str) -> Optional[structures.SequenceValue]:
@@ -181,6 +181,8 @@ def main() -> int:
         "-np", "--no-play", action="store_true", help="don't play result"
     )
 
+    parser.add_argument("-o", "--output-file", help="save file path (results don't get saved by default)")
+
     args = parser.parse_args()
     colorama.init()
 
@@ -196,7 +198,7 @@ def main() -> int:
         if not audio_tree:
             return 1
 
-        synthesis.play_result(audio_tree, actx)
+        synthesis.play_result(audio_tree, actx, args.output_file)
         return 0
     else:
         return repl()

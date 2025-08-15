@@ -1,6 +1,6 @@
 from structures import Note, Instrument, AudioContext, SequenceValue
 from typing_extensions import Literal
-from typing import Tuple, Dict, Callable
+from typing import Tuple, Dict, Callable, Optional
 
 import numpy as np
 
@@ -8,6 +8,7 @@ import config
 from pyaudio import PyAudio
 
 from scipy.signal import butter, filtfilt
+from scipy.io.wavfile import write
 
 filter_cache: Dict[
     Tuple[float, int, Literal["low", "high"]], Tuple[np.ndarray, np.ndarray]
@@ -76,8 +77,11 @@ def note_to_freq(note: str, semitone_offset: float = 0) -> float:
     return freq
 
 
-def play_result(root: SequenceValue, actx: AudioContext):
+def play_result(root: SequenceValue, actx: AudioContext, save_path: Optional[str]):
     root.mixdown(actx, 1)
+
+    if save_path is not None:
+        write(save_path, config.SAMPLE_RATE, actx.mixdown)
 
     if len(actx.mixdown) != 0 and not config.NO_PLAY:
         p = PyAudio()
