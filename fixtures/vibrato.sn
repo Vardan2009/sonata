@@ -1,0 +1,24 @@
+{
+    instrument vibrato_violin (
+        adsr 0.3 0.4 0.8 0.5,
+        waveform "sawtooth",
+        lowpass 7000 2,
+        highpass 150 1,
+        vibrato "sine" 10 0.02,
+        harmonics
+            1   1.00
+            2   0.85
+            3   0.70
+            4   0.55
+            5   0.45
+            6   0.35
+            7   0.25
+            8   0.20
+            9   0.15
+            10  0.10
+    )
+
+    use vibrato_violin
+
+    C4:2
+}

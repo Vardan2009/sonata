@@ -177,7 +177,9 @@ def main() -> int:
     )
 
     parser.add_argument("-l", "--loop", action="store_true", help="enable loop mode")
-    parser.add_argument("-np", "--no-play", action="store_true", help="don't play result")
+    parser.add_argument(
+        "-np", "--no-play", action="store_true", help="don't play result"
+    )
 
     args = parser.parse_args()
     colorama.init()

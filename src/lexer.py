@@ -87,7 +87,8 @@ def tokenize_source(filename: str, src: str) -> List[Token]:
         "sample",
         "lowpass",
         "highpass",
-        "harmonics"
+        "harmonics",
+        "vibrato",
     ]
 
     def tokenize_number() -> None:

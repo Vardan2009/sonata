@@ -30,15 +30,15 @@ def pass_filter(
     return filtfilt(b, a, data)
 
 
-note_freq_cache: Dict[str, float] = {}
+note_freq_cache: Dict[Tuple[str, float], float] = {}
 
 
-def note_to_freq(note: str) -> float:
+def note_to_freq(note: str, semitone_offset: float = 0) -> float:
     if note[0] == "_":
         return 0
 
-    if note in note_freq_cache:
-        return note_freq_cache[note]
+    if (note, semitone_offset) in note_freq_cache:
+        return note_freq_cache[(note, semitone_offset)]
 
     note = note[0].upper() + note[1:]
 
@@ -69,10 +69,10 @@ def note_to_freq(note: str) -> float:
         name = note[:2]
         octave = int(note[2])
 
-    semitone_diff = note_offsets[name] + (octave - 4) * 12
+    semitone_diff = note_offsets[name] + (octave - 4) * 12 + semitone_offset
 
     freq = 440 * (2 ** (semitone_diff / 12))
-    note_freq_cache[note] = freq
+    note_freq_cache[(note, semitone_offset)] = freq
     return freq
 
 
@@ -169,20 +169,20 @@ def get_envelope(adsr: tuple[float, float, float, float], duration: float, sr: i
     return result
 
 
-t_cache: Dict[Tuple[float, float], np.ndarray] = {}
+t_cache: Dict[float, np.ndarray] = {}
 
 
-def get_t(length: float, freq: float, sr: float) -> np.ndarray:
-    key = (length, freq)
-    if key not in t_cache:
-        t_cache[key] = np.arange(length, dtype=np.float32) * (2 * np.pi * freq / sr)
-    return t_cache[key]
+def get_t(length: float) -> np.ndarray:
+    if length not in t_cache:
+        t_cache[length] = np.arange(length, dtype=np.float32)
+    return t_cache[length]
 
 
 def play_note(note: "Note", actx: AudioContext, num_in_parallel: int = 1):
     instrument: Instrument = note.instrument
     adsr = instrument.adsr
     wavefunc = WAVEFORMS[instrument.waveform]
+    vibrato_wavefunc = WAVEFORMS[instrument.vibrato_waveform]
 
     duration = note.duration * (60 / note.tempo)
 
@@ -190,11 +190,15 @@ def play_note(note: "Note", actx: AudioContext, num_in_parallel: int = 1):
         adsr, duration, config.SAMPLE_RATE
     )
 
-    t = get_t(note_abs_length, note_to_freq(note.note), config.SAMPLE_RATE)
+    t = get_t(note_abs_length)  # np.arange(length, dtype=np.float32)
+    f = note_to_freq(note.note)
+    va = note_to_freq(note.note, instrument.vibrato_depth) - f
+    vf = instrument.vibrato_frequency
+    inst_freq = f + va * vibrato_wavefunc(2 * np.pi * vf * t / config.SAMPLE_RATE)
+    phase = 2 * np.pi * np.cumsum(inst_freq) / config.SAMPLE_RATE
 
     samples = np.mean(
-        [a * wavefunc(f * t) for f, a in instrument.harmonics],
-        axis=0
+        [a * wavefunc(ff * phase) for ff, a in instrument.harmonics], axis=0
     )
 
     samples *= envelope * note.volume * 0.7

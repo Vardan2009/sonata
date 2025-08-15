@@ -69,6 +69,10 @@ class Instrument:
 
         self.harmonics: List[Tuple[float, float]] = [(1, 1)]
 
+        self.vibrato_waveform: str = "sine"
+        self.vibrato_frequency: float = 0
+        self.vibrato_depth: float = 0
+
         if not (node and ctx):
             return
 
@@ -157,6 +161,10 @@ class Instrument:
                         (cast(float, eval_values[i]), cast(float, eval_values[i + 1]))
                         for i in range(0, len(eval_values), 2)
                     ]
+                case "vibrato":
+                    self.vibrato_waveform = cast(str, eval_values[0])
+                    self.vibrato_frequency = cast(float, eval_values[1])
+                    self.vibrato_depth = cast(float, eval_values[2])
                 case _:
                     raise SonataError(
                         SonataErrorType.NAME_ERROR,
