@@ -50,7 +50,7 @@ def repl() -> int:
     actx: synthesis.AudioContext = synthesis.AudioContext()
 
     while True:
-        print("Sonata % ", end="")
+        print(f"{Fore.YELLOW}Sonata %{Fore.RESET} ", end="")
         line = input().strip()
 
         if line == "exit":
