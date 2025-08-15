@@ -140,7 +140,7 @@ def loop_file(path: str) -> int:
 
     try:
         while True:
-            if len(actx.mixdown) > 0:
+            if len(actx.mixdown) > 0 and not config.NO_PLAY:
                 data = actx.mixdown.tobytes()
                 chunk_size: int = 1024
                 for i in range(0, len(data), chunk_size):
@@ -177,9 +177,12 @@ def main() -> int:
     )
 
     parser.add_argument("-l", "--loop", action="store_true", help="enable loop mode")
+    parser.add_argument("-np", "--no-play", action="store_true", help="don't play result")
 
     args = parser.parse_args()
     colorama.init()
+
+    config.NO_PLAY = args.no_play
 
     if args.file:
         if args.loop:

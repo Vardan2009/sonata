@@ -79,25 +79,25 @@ def note_to_freq(note: str) -> float:
 def play_result(root: SequenceValue, actx: AudioContext):
     root.mixdown(actx, 1)
 
-    # if len(actx.mixdown) != 0:
-    #     p = PyAudio()
+    if len(actx.mixdown) != 0 and not config.NO_PLAY:
+        p = PyAudio()
 
-    #     stream = p.open(
-    #         format=config.SAMPLE_TYPE,
-    #         channels=config.CHANNELS,
-    #         rate=config.SAMPLE_RATE,
-    #         output=True,
-    #     )
+        stream = p.open(
+            format=config.SAMPLE_TYPE,
+            channels=config.CHANNELS,
+            rate=config.SAMPLE_RATE,
+            output=True,
+        )
 
-    #     data = actx.mixdown.tobytes()
-    #     chunk_size: int = 1024
-    #     for i in range(0, len(data), chunk_size):
-    #         stream.write(data[i : i + chunk_size])
+        data = actx.mixdown.tobytes()
+        chunk_size: int = 1024
+        for i in range(0, len(data), chunk_size):
+            stream.write(data[i : i + chunk_size])
 
-    #     stream.stop_stream()
-    #     stream.close()
+        stream.stop_stream()
+        stream.close()
 
-    #     p.terminate()
+        p.terminate()
 
 
 def square_wave(x: np.ndarray) -> np.ndarray:
