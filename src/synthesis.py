@@ -82,7 +82,7 @@ def play_result(root: SequenceValue, actx: AudioContext):
         p = PyAudio()
 
         stream = p.open(
-            format=paFloat32, channels=1, rate=actx.sample_rate, output=True
+            format=paFloat32, channels=2, rate=actx.sample_rate, output=True
         )
 
         data = actx.mixdown.tobytes()
@@ -189,8 +189,8 @@ def play_note(note: "Note", actx: AudioContext, num_in_parallel: int = 1):
     t = get_t(note_abs_length, note_to_freq(note.note), actx.sample_rate)
 
     samples = wavefunc(t)
-    samples *= envelope * note.volume
-    samples *= 1.0 / (num_in_parallel + 1)
+    samples *= envelope * note.volume * 0.7
+    samples *= 1.0 / num_in_parallel
 
     if instrument.lowpass_freq and instrument.lowpass_order:
         samples = pass_filter(
@@ -210,11 +210,15 @@ def play_note(note: "Note", actx: AudioContext, num_in_parallel: int = 1):
             "high",
         )
 
+    left_gain = np.cos((note.pan + 1) * np.pi / 4)
+    right_gain = np.sin((note.pan + 1) * np.pi / 4)
+    stereo_samples = np.column_stack((samples * left_gain, samples * right_gain))
+
     needed_len = actx.mixdown_ptr + note_abs_length
     if needed_len > len(actx.mixdown):
-        tmp = np.zeros(needed_len, dtype=np.float32)
-        tmp[: len(actx.mixdown)] = actx.mixdown
+        tmp = np.zeros((needed_len, 2), dtype=np.float32)
+        tmp[: len(actx.mixdown), :] = actx.mixdown
         actx.mixdown = tmp
 
-    actx.mixdown[actx.mixdown_ptr : actx.mixdown_ptr + note_abs_length] += samples
+    actx.mixdown[actx.mixdown_ptr : actx.mixdown_ptr + note_abs_length, :] += stereo_samples
     actx.mixdown_ptr += note_abs_length - release_samples

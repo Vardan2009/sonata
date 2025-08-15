@@ -13,6 +13,7 @@ class Note:
         self.instrument: Instrument = ictx.get_instrument()
         self.tempo: float = ictx.get_tempo()
         self.volume: float = ictx.get_volume()
+        self.pan: float = ictx.get_pan()
 
     def __str__(self) -> str:
         return f"{self.note}:{self.duration}"
@@ -162,13 +163,14 @@ class Scope:
         self.symbols: Dict[str, Value] = symbols
         self.defined_instruments: Dict[str, Instrument] = {}
         self.volume: Optional[float] = None
+        self.pan: Optional[float] = None
 
 
 class AudioContext:
     def __init__(self) -> None:
         self.sample_rate: int = 44100
 
-        self.mixdown: np.ndarray = np.array([], dtype=np.float32)
+        self.mixdown: np.ndarray = np.zeros((2, ), dtype=np.float32)
         self.mixdown_ptr: int = 0
 
     def clear(self) -> None:
@@ -235,6 +237,15 @@ class InterpreterContext:
         for scope in reversed(self.scope_stack):
             if scope.volume is not None:
                 return scope.volume
+        return 1
+    
+    def set_pan(self, new_pan: float):
+        self.scope_stack[-1].pan = new_pan
+
+    def get_pan(self) -> float:
+        for scope in reversed(self.scope_stack):
+            if scope.pan is not None:
+                return scope.pan
         return 1
 
     def set_instrument(self, new_instrument: Instrument):

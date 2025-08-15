@@ -146,12 +146,30 @@ class DefineNode(ASTNode):
         self.root: ASTNode = root
         super().__init__(line, column)
 
+    def pretty_print(self, indent: int = 0) -> None:
+        super().pretty_print(indent)
+        print(f"Define {self.alias}")
+        self.root.pretty_print(indent + 1)
 
 class VolumeNode(ASTNode):
     def __init__(self, volume: ASTNode, line: int, column: int):
         self.volume: ASTNode = volume
         super().__init__(line, column)
 
+    def pretty_print(self, indent: int = 0) -> None:
+        super().pretty_print(indent)
+        print("Volume")
+        self.volume.pretty_print(indent + 1)
+
+class PanNode(ASTNode):
+    def __init__(self, pan: ASTNode, line: int, column: int):
+        self.pan: ASTNode = pan
+        super().__init__(line, column)
+    
+    def pretty_print(self, indent: int = 0) -> None:
+        super().pretty_print(indent)
+        print("Pan")
+        self.pan.pretty_print(indent + 1)
 
 class Parser:
     precedence: Dict[lexer.TokenType, int] = {
@@ -271,6 +289,9 @@ class Parser:
             case "volume":
                 value: ASTNode = self.parse_expression()
                 return VolumeNode(value, command_token.line, command_token.column)
+            case "pan":
+                pan: ASTNode = self.parse_expression()
+                return PanNode(pan, command_token.line, command_token.column)
             case _:
                 raise error.SonataError(
                     error.SonataErrorType.SYNTAX_ERROR,
