@@ -79,25 +79,25 @@ def note_to_freq(note: str) -> float:
 def play_result(root: SequenceValue, actx: AudioContext):
     root.mixdown(actx, 1)
 
-    if len(actx.mixdown) != 0:
-        p = PyAudio()
+    # if len(actx.mixdown) != 0:
+    #     p = PyAudio()
 
-        stream = p.open(
-            format=config.SAMPLE_TYPE,
-            channels=config.CHANNELS,
-            rate=config.SAMPLE_RATE,
-            output=True,
-        )
+    #     stream = p.open(
+    #         format=config.SAMPLE_TYPE,
+    #         channels=config.CHANNELS,
+    #         rate=config.SAMPLE_RATE,
+    #         output=True,
+    #     )
 
-        data = actx.mixdown.tobytes()
-        chunk_size: int = 1024
-        for i in range(0, len(data), chunk_size):
-            stream.write(data[i : i + chunk_size])
+    #     data = actx.mixdown.tobytes()
+    #     chunk_size: int = 1024
+    #     for i in range(0, len(data), chunk_size):
+    #         stream.write(data[i : i + chunk_size])
 
-        stream.stop_stream()
-        stream.close()
+    #     stream.stop_stream()
+    #     stream.close()
 
-        p.terminate()
+    #     p.terminate()
 
 
 def square_wave(x: np.ndarray) -> np.ndarray:
@@ -192,7 +192,11 @@ def play_note(note: "Note", actx: AudioContext, num_in_parallel: int = 1):
 
     t = get_t(note_abs_length, note_to_freq(note.note), config.SAMPLE_RATE)
 
-    samples = wavefunc(t)
+    samples = np.mean(
+        [a * wavefunc(f * t) for f, a in instrument.harmonics],
+        axis=0
+    )
+
     samples *= envelope * note.volume * 0.7
     samples *= 1.0 / num_in_parallel
 

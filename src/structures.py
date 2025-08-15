@@ -1,4 +1,4 @@
-from typing import Optional, Dict, List, TypeAlias, Union, cast
+from typing import Optional, Dict, List, Tuple, TypeAlias, Union, cast
 from parser import InstrumentNode, ASTNode
 
 from error import SonataError, SonataErrorType
@@ -66,6 +66,8 @@ class Instrument:
 
         self.highpass_freq: Optional[float] = None
         self.highpass_order: Optional[int] = None
+
+        self.harmonics: List[Tuple[float, float]] = [(1, 1)]
 
         if not (node and ctx):
             return
@@ -142,6 +144,19 @@ class Instrument:
 
                     self.highpass_freq = eval_values[0]
                     self.highpass_order = int(eval_values[1])
+                case "harmonics":
+                    if not all(isinstance(x, float) for x in eval_values):
+                        raise SonataError(
+                            SonataErrorType.TYPE_ERROR,
+                            "All harmonics values must be float",
+                            ctx.file,
+                            node.line,
+                            node.column,
+                        )
+                    self.harmonics = [
+                        (cast(float, eval_values[i]), cast(float, eval_values[i + 1]))
+                        for i in range(0, len(eval_values), 2)
+                    ]
                 case _:
                     raise SonataError(
                         SonataErrorType.NAME_ERROR,
@@ -244,7 +259,7 @@ class InterpreterContext:
         for scope in reversed(self.scope_stack):
             if scope.pan is not None:
                 return scope.pan
-        return 1
+        return 0
 
     def set_instrument(self, new_instrument: Instrument):
         self.scope_stack[-1].instrument = new_instrument
